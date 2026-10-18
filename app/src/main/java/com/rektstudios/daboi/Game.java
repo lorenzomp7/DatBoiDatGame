@@ -197,15 +197,26 @@ final class Game {
             pastThir = true;
             accessoryActive[3] = true;
         }
-        // Sound_DatBoi.Play() every frame around each 10 m mark (restarts the clip).
+        // Sound_DatBoi.Play() every frame around a milestone (restarts the clip).
         ohShitCooldown -= realDt;
-        if (Math.round(currentScore) % 10 == 0 && currentScore > 5f && ohShitCooldown <= 0) {
+        if (currentScore > 5f && isOhShitMark(Math.round(currentScore)) && ohShitCooldown <= 0) {
             sound.playOhShit();
             ohShitCooldown = 1f / 30f;
         }
         scoreText = cropDistance(currentScore);
         cycledText = "Ur boi cycled \n" + cropDistance(distanceUnicycled) + " in total";
         if (phys.poleCenterY() <= DIE_HEIGHT) die();
+    }
+
+    /** 10, 20, 30, 100, 200, 300, 1000, 2000, 3000, ... (the original played it every 10 m). */
+    static boolean isOhShitMark(int metres) {
+        if (metres < 10) return false;
+        int zeros = 0;
+        while (metres % 10 == 0) {
+            metres /= 10;
+            zeros++;
+        }
+        return zeros >= 1 && metres >= 1 && metres <= 3;
     }
 
     private void die() {

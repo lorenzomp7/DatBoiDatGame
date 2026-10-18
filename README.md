@@ -26,7 +26,8 @@ reimplementato, la scena Unity (`level0`) letta oggetto per oggetto.
   dell'animazione segue la rotazione della ruota (`AnimSpeed`, velocità stato -0,65).
   Skinning su GPU.
 - **Gioco**: punteggio dalla posizione di `loc`, record e distanza totale salvati,
-  "oh shit waddup" a ogni 10 m (riavviato a ogni frame come nell'originale), occhiali MLG
+  "oh shit waddup" a 10, 20, 30, 100, 200, 300, 1000, 2000, 3000 m e così via
+  (l'originale lo suonava ogni 10 m), occhiali MLG
   a 10 m, fedora a 20 m, canna con fumo a 30 m (volano in posizione a 4 m/s), righello con
   tacca ogni metro, tacca rossa e numero ogni 10 m, testo "Ur boi cycled ... in total".
 - **UI**: stessi testi, ancore, dimensioni e rotazioni della Canvas Unity (pulsante
