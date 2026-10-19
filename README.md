@@ -87,9 +87,10 @@ python3 tools/bake_assets.py /tmp/datboi-apk app/src/main/assets
 ## Installare
 
 `adb install dist/DatBoi-2.0-64bit.apk`, oppure copia l'APK sul telefono e aprilo
-(consentendo l'installazione da origini sconosciute). L'APK in `dist/` è firmato con una
-chiave di debug: se in futuro installi una build firmata con un'altra chiave, disinstalla
-prima questa.
+(consentendo l'installazione da origini sconosciute; su Play Protect scegli "Installa
+comunque"). L'APK è firmato con la chiave di debug fissa `tools/debug.keystore`, così le
+build successive si installano come aggiornamento. Se hai una versione firmata con
+un'altra chiave (l'app originale o build precedenti), disinstallala prima.
 
 Per pubblicarlo su Google Play come aggiornamento della vecchia app serve la chiave di
 firma originale (il package name `com.rektstudios.daboi` è invariato), e Play richiede

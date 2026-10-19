@@ -1,3 +1,4 @@
 build/
 *.keystore
+!tools/debug.keystore
 __pycache__/

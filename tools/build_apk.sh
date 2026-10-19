@@ -71,7 +71,8 @@ fi
 
 echo "== align + sign"
 "$ZIPALIGN" -f -p 4 "$OUT/unaligned.apk" "$OUT/aligned.apk"
-KEYSTORE="${KEYSTORE:-$OUT/debug.keystore}"
+# a fixed debug key, so new builds install as updates of older ones
+KEYSTORE="${KEYSTORE:-$ROOT/tools/debug.keystore}"
 KEY_ALIAS="${KEY_ALIAS:-datboi}"
 KEY_PASS="${KEY_PASS:-android}"
 if [[ ! -f "$KEYSTORE" ]]; then
