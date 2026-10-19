@@ -38,6 +38,9 @@ final class GameRenderer implements GLSurfaceView.Renderer {
     private static final float[] AMB_SKY = {0.29f, 0.31f, 0.36f};
     private static final float[] AMB_GROUND = {0.13f, 0.13f, 0.13f};
     private static final float[] FOG = {1f, 1f, 1f};
+    // the original ground (1000 m wide) and ruler (1000 m) are stretched to 10 km
+    private static final float GROUND_X = 10000f;
+    private static final float RULER_LENGTH = 10000f;
     private static final float TEXT_UNITS = 0.1f;     // TextMesh: world units per font pixel
     private static final float TEXT_SCALE = 0.019601386f;
     private static final float[] RED = {1f, 0f, 0f, 1f};
@@ -92,8 +95,8 @@ final class GameRenderer implements GLSurfaceView.Renderer {
         cubeVbo = buffer(cube());
         quadVbo = buffer(new float[]{0, 0, 0, 0, 1, 1, 0, 0, 1, 1, 1, 1, 0, 1, 0, 0, 1, 0, 0, 0});
         groundVbo = buffer(new float[]{
-                -500, 0, -500, 0, 1, 0, 500, 0, -500, 0, 1, 0, 500, 0, 500, 0, 1, 0,
-                -500, 0, 500, 0, 1, 0});
+                -GROUND_X, 0, -500, 0, 1, 0, GROUND_X, 0, -500, 0, 1, 0, GROUND_X, 0, 500, 0, 1, 0,
+                -GROUND_X, 0, 500, 0, 1, 0});
         for (Model.Part p : game.model.parts) {
             int[] ids = new int[2];
             GLES20.glGenBuffers(2, ids, 0);
@@ -206,13 +209,13 @@ final class GameRenderer implements GLSurfaceView.Renderer {
 
     private void drawWorld(float wx) {
         beginLit(litProg);
-        // ground: Unity Plane (10x10) scaled by 100 at the origin
+        // ground: the original Unity Plane, stretched along the track to +-10 km
         Matrix.setIdentityM(model, 0);
         drawLit(groundVbo, GLES20.GL_TRIANGLE_FAN, 4, model, WHITE);
-        // wholeRuler: white bar along the first 1000 m
+        // wholeRuler: white bar along the first 10 km
         Matrix.setIdentityM(model, 0);
-        Matrix.translateM(model, 0, 500f, 0.05f, 0.84f);
-        Matrix.scaleM(model, 0, 1000f, 0.25457239f, 0.1f);
+        Matrix.translateM(model, 0, RULER_LENGTH / 2, 0.05f, 0.84f);
+        Matrix.scaleM(model, 0, RULER_LENGTH, 0.25457239f, 0.1f);
         drawLit(cubeVbo, GLES20.GL_TRIANGLES, 36, model, WHITE);
         // instantiateThis: a black tick every metre, a red one every ten
         int from = Math.max(0, (int) Math.floor(wx - 60));

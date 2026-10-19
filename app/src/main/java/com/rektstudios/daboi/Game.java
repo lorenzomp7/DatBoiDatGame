@@ -44,8 +44,11 @@ final class Game {
     float currentScore, maxScore, recordScore, distanceUnicycled;
     private float distanceLast;
     private boolean pastTen, pastTwen, pastThir;
-    /** Not in the original: the Get Rekt green screen clip plays behind dat boi after 1000 m. */
-    static final float VIDEO_AT = 1000f;
+    /**
+     * Not in the original: the Get Rekt green screen clip plays behind dat boi once
+     * the -10 m song reaches 0:49.
+     */
+    static final int VIDEO_AT_SONG_MS = 49000;
     volatile boolean videoActive;
     /** Not in the original: going back to -10 m switches the music. */
     static final float SPECIAL_MUSIC_AT = -10f;
@@ -188,6 +191,7 @@ final class Game {
         if (animTime < 0) animTime += model.clipLength;
 
         while (phys.x >= amountAlready - 10) amountAlready += 10;
+        if (!videoActive && sound.specialMusicPositionMs() >= VIDEO_AT_SONG_MS) videoActive = true;
         moveAccessories(dt);
         updateTransforms();
         updateSmoke(dt);
@@ -206,7 +210,6 @@ final class Game {
             pastTwen = true;
             accessoryActive[2] = true;
         }
-        if (currentScore > VIDEO_AT) videoActive = true;
         if (currentScore <= SPECIAL_MUSIC_AT) sound.setSpecialMusic(true);
         if (currentScore > BLUNT_AT && !pastThir) {
             pastThir = true;

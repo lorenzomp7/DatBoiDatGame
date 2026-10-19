@@ -26,7 +26,7 @@ final class Sound {
     private boolean musicStarted;      // static playingmusic in the original
     private float musicTimer = -1f;
     private volatile boolean paused, appPaused;
-    private MediaPlayer special;        // main thread only: the -10 m track
+    private volatile MediaPlayer special;   // created/released on the main thread: the -10 m track
     private volatile boolean specialOn;
 
     Sound(Context context) {
@@ -141,6 +141,17 @@ final class Sound {
         });
     }
 
+    /** Playback position of the -10 m song, or -1 when it is not playing. */
+    int specialMusicPositionMs() {
+        MediaPlayer p = special;
+        if (!specialOn || p == null) return -1;
+        try {
+            return p.getCurrentPosition();
+        } catch (IllegalStateException e) {
+            return -1;
+        }
+    }
+
     private MediaPlayer createPlayer(String asset) {
         try {
             AssetFileDescriptor fd = context.getAssets().openFd(asset);
@@ -170,7 +181,10 @@ final class Sound {
             else if (!want && music.isPlaying()) music.pause();
         }
         if (special != null) {
-            boolean want = !silent && useSpecial;
+            // muted, the song keeps running silently so the 0:49 video cue still fires
+            boolean want = !appPaused && useSpecial;
+            float v = paused ? 0f : 1f;
+            special.setVolume(v, v);
             if (want && !special.isPlaying()) special.start();
             else if (!want && special.isPlaying()) special.pause();
         }
