@@ -170,7 +170,7 @@ final class HudView extends View {
         faqEls.add(new El(k, 0, 0, 1, 1, 0, 0, 0, 0, 0).text("K play da gaem", 14, ALIGN_MIDDLE_CENTER).bestFit(10, 40));
         faqEls.add(new El(faqPanel, 0.5f, 0, 0.5f, 1, 1f, 0f, 357f, -1f, 0f).text(
                 "FAQ\nControls?\nTouch left to lean more right, touch right lean more left.\n\n"
-                        + "Why does the UI look like cancer?\nBecause DAT BOI doesn't need a nice UI.\n\n"
+                        + "Why does the UI look so ugly?\nBecause DAT BOI doesn't need a nice UI.\n\n"
                         + "How can I turn on music again?\nRestart the game.\n", 14, ALIGN_MIDDLE_CENTER));
         setFocusable(true);
     }
