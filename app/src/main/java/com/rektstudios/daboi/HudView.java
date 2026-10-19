@@ -29,6 +29,10 @@ import java.util.Map;
 final class HudView extends View {
     interface Actions {
         void share(String text);
+
+        void exportProgress();
+
+        void importProgress();
     }
 
     private static final float REF_WIDTH = 800f;
@@ -79,7 +83,8 @@ final class HudView extends View {
         }
     }
 
-    private static final int A_HELP = 0, A_START = 1, A_K = 2, A_RESTART = 3, A_MUTE = 4, A_SHARE = 5;
+    private static final int A_HELP = 0, A_START = 1, A_K = 2, A_RESTART = 3, A_MUTE = 4, A_SHARE = 5,
+            A_EXPORT = 6, A_IMPORT = 7;
 
     private final Game game;
     private final Sound sound;
@@ -159,6 +164,9 @@ final class HudView extends View {
         k.bg = BG_BUTTON;
         k.action = A_K;
         faqEls.add(k);
+        // not in the original: move your record between installs / phones
+        faqButton(-320f, -20f, A_EXPORT, "export ur progress");
+        faqButton(-320f, -73f, A_IMPORT, "import ur progress");
         faqEls.add(new El(k, 0, 0, 1, 1, 0, 0, 0, 0, 0).text("K play da gaem", 14, ALIGN_MIDDLE_CENTER).bestFit(10, 40));
         faqEls.add(new El(faqPanel, 0.5f, 0, 0.5f, 1, 1f, 0f, 357f, -1f, 0f).text(
                 "FAQ\nControls?\nTouch left to lean more right, touch right lean more left.\n\n"
@@ -177,6 +185,14 @@ final class HudView extends View {
     }
 
     private float insetRight;
+
+    private void faqButton(float x, float y, int action, String label) {
+        El b = new El(faqPanel, 0.5f, 0.5f, 0.5f, 0.5f, x, y, 140f, 34.6f, 0f);
+        b.bg = BG_BUTTON;
+        b.action = action;
+        faqEls.add(b);
+        faqEls.add(new El(b, 0, 0, 1, 1, 0, 0, 0, 0, 0).text(label, 14, ALIGN_MIDDLE_CENTER).bestFit(10, 40));
+    }
 
     void setInsets(int left, int top, int right) {
         insetLeft = left;
@@ -495,6 +511,12 @@ final class HudView extends View {
                         game.onToggleMute();
                     }
                 });
+                break;
+            case A_EXPORT:
+                actions.exportProgress();
+                break;
+            case A_IMPORT:
+                actions.importProgress();
                 break;
             case A_SHARE:
                 actions.share(game.shareText());

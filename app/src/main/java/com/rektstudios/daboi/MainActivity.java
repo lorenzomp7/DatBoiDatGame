@@ -2,6 +2,7 @@ package com.rektstudios.daboi;
 
 import android.app.Activity;
 import android.content.Intent;
+import android.net.Uri;
 import android.opengl.GLSurfaceView;
 import android.os.Build;
 import android.os.Bundle;
@@ -11,14 +12,21 @@ import android.view.Window;
 import android.view.WindowInsets;
 import android.view.WindowManager;
 import android.widget.FrameLayout;
+import android.widget.Toast;
 
+import java.io.ByteArrayOutputStream;
 import java.io.IOException;
+import java.io.InputStream;
+import java.io.OutputStream;
 
 public final class MainActivity extends Activity implements HudView.Actions {
     private GLSurfaceView glView;
     private HudView hud;
+    private static final int REQ_EXPORT = 1, REQ_IMPORT = 2;
+
     private Game game;
     private Sound sound;
+    private Save save;
 
     @Override
     protected void onCreate(Bundle savedInstanceState) {
@@ -44,7 +52,8 @@ public final class MainActivity extends Activity implements HudView.Actions {
             throw new RuntimeException("cannot load model", e);
         }
         sound = new Sound(this);
-        game = new Game(model, sound, new Save(this));
+        save = new Save(this);
+        game = new Game(model, sound, save);
 
         glView = new GLSurfaceView(this);
         glView.setEGLContextClientVersion(2);
@@ -164,6 +173,74 @@ public final class MainActivity extends Activity implements HudView.Actions {
                 game.onKey(dir, down);
             }
         });
+    }
+
+    // export / import of the saved progress (Storage Access Framework, no permissions)
+    @Override
+    public void exportProgress() {
+        Intent i = new Intent(Intent.ACTION_CREATE_DOCUMENT);
+        i.addCategory(Intent.CATEGORY_OPENABLE);
+        i.setType("application/json");
+        i.putExtra(Intent.EXTRA_TITLE, "datboi-progress.json");
+        startForResult(i, REQ_EXPORT);
+    }
+
+    @Override
+    public void importProgress() {
+        Intent i = new Intent(Intent.ACTION_OPEN_DOCUMENT);
+        i.addCategory(Intent.CATEGORY_OPENABLE);
+        i.setType("*/*");
+        startForResult(i, REQ_IMPORT);
+    }
+
+    private void startForResult(Intent i, int code) {
+        try {
+            startActivityForResult(i, code);
+        } catch (RuntimeException e) {
+            toast("no file manager found");
+        }
+    }
+
+    @Override
+    protected void onActivityResult(int requestCode, int resultCode, Intent data) {
+        super.onActivityResult(requestCode, resultCode, data);
+        if (resultCode != RESULT_OK || data == null || data.getData() == null) return;
+        Uri uri = data.getData();
+        try {
+            if (requestCode == REQ_EXPORT) {
+                OutputStream out = getContentResolver().openOutputStream(uri, "wt");
+                try {
+                    out.write(save.exportJson().getBytes("UTF-8"));
+                } finally {
+                    out.close();
+                }
+                toast("progress exported");
+            } else if (requestCode == REQ_IMPORT) {
+                InputStream in = getContentResolver().openInputStream(uri);
+                ByteArrayOutputStream buf = new ByteArrayOutputStream();
+                try {
+                    byte[] b = new byte[8192];
+                    int n;
+                    while ((n = in.read(b)) > 0 && buf.size() < 65536) buf.write(b, 0, n);
+                } finally {
+                    in.close();
+                }
+                float record = save.importJson(buf.toString("UTF-8"));
+                game.post(new Runnable() {
+                    @Override
+                    public void run() {
+                        game.onProgressImported();
+                    }
+                });
+                toast("progress imported! ur record: " + Game.cropDistance(record));
+            }
+        } catch (Exception e) {
+            toast(requestCode == REQ_EXPORT ? "export failed" : "dat file is not dat boi progress");
+        }
+    }
+
+    private void toast(String msg) {
+        Toast.makeText(this, msg, Toast.LENGTH_LONG).show();
     }
 
     // shareonfb: the Facebook SDK is replaced by the system share sheet

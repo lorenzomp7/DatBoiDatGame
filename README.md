@@ -9,7 +9,7 @@ app Android nativa in Java + OpenGL ES 2.0, **senza alcuna libreria nativa**: AR
 esegue come processo a 64 bit su `arm64-v8a` / `x86_64` (e anche sui dispositivi a 32 bit).
 
 APK pronto all'installazione: [`dist/DatBoi-2.0-64bit.apk`](dist/DatBoi-2.0-64bit.apk)
-(minSdk 21 / Android 5.0, targetSdk 35).
+(versione 2.1, minSdk 21 / Android 5.0, targetSdk 35).
 
 ## Cosa è stato ricreato
 
@@ -35,6 +35,14 @@ reimplementato, la scena Unity (`level0`) letta oggetto per oggetto.
   i suoni, hitmarker + suono a ogni tocco). Controlli: tocca a sinistra/destra (o frecce
   sinistra/destra, A/D su tastiera).
 - **Audio**: musica in loop (parte dopo 1,516 s), hitmarker, "k", "oh shit waddup".
+
+### Salvare i progressi
+
+Nel pannello `help` ci sono due pulsanti in più: **export ur progress** salva record e
+distanza totale in un file `datboi-progress.json` (dove vuoi: Download, Drive, ...), e
+**import ur progress** li ricarica. L'importazione tiene sempre il valore migliore tra
+quello attuale e quello del file, quindi non si perde niente. Utile per cambiare telefono
+o reinstallare l'app.
 
 ### Differenze rispetto all'originale
 

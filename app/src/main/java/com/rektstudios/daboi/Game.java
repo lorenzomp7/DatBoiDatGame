@@ -143,6 +143,12 @@ final class Game {
         sound.setPaused(muted);
     }
 
+    /** Progress was imported from a file. */
+    void onProgressImported() {
+        recordScore = Math.max(recordScore, save.record());
+        distanceUnicycled = Math.max(distanceUnicycled, save.distance());
+    }
+
     void onKey(int dir, boolean down) {
         if (down) keyTarget = dir;
         else if (keyTarget == dir) keyTarget = 0;
