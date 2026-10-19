@@ -44,6 +44,9 @@ final class Game {
     float currentScore, maxScore, recordScore, distanceUnicycled;
     private float distanceLast;
     private boolean pastTen, pastTwen, pastThir;
+    /** Not in the original: the Get Rekt green screen clip plays behind dat boi after 1000 m. */
+    static final float VIDEO_AT = 1000f;
+    volatile boolean videoActive;
     private float ohShitCooldown;
 
     // animation / transforms (GL thread only)
@@ -89,6 +92,7 @@ final class Game {
         distanceLast = 0;
         currentScore = maxScore = 0;
         pastTen = pastTwen = pastThir = false;
+        videoActive = false;
         animTime = 0;
         animSpeed = 0;
         amountAlready = 10;
@@ -199,6 +203,7 @@ final class Game {
             pastTwen = true;
             accessoryActive[2] = true;
         }
+        if (currentScore > VIDEO_AT) videoActive = true;
         if (currentScore > BLUNT_AT && !pastThir) {
             pastThir = true;
             accessoryActive[3] = true;

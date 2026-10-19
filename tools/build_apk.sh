@@ -52,7 +52,7 @@ echo "== resources"
   -A "$APP/assets" \
   -I "$ANDROID_JAR" \
   -J "$OUT/gen" \
-  -0 ogg -0 bin \
+  -0 ogg -0 bin -0 mp4 \
   -F "$OUT/unaligned.apk"
 
 echo "== java"

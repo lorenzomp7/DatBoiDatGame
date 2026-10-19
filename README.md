@@ -36,6 +36,12 @@ reimplementato, la scena Unity (`level0`) letta oggetto per oggetto.
   sinistra/destra, A/D su tastiera).
 - **Audio**: musica in loop (parte dopo 1,516 s), hitmarker, "k", "oh shit waddup".
 
+### Extra a 1000 m
+
+Superati i 1000 m parte in loop, dietro la rana, il video "Get Rekt" (`assets/getrekt.mp4`)
+con il verde reso trasparente (chroma key nello shader); l'audio segue il tasto per
+disattivare i suoni. Si ferma al "restert?".
+
 ### Salvare i progressi
 
 Nel pannello `help` ci sono due pulsanti in più: **export ur progress** salva record e

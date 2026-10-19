@@ -48,7 +48,8 @@ final class GameRenderer implements GLSurfaceView.Renderer {
     private final Game game;
     private final Typeface textFont;
 
-    private int litProg, skinProg, texProg, skyProg;
+    private int litProg, skinProg, texProg, skyProg, videoProg;
+    private final VideoBackground video;
     private int cubeVbo, quadVbo, groundVbo;
     private int smokeTex;
     private final Map<Integer, TextTex> labels = new HashMap<>();
@@ -64,9 +65,10 @@ final class GameRenderer implements GLSurfaceView.Renderer {
     private int width = 1, height = 1;
     private long lastNanos;
 
-    GameRenderer(Context context, Game game) {
+    GameRenderer(Context context, Game game, VideoBackground video) {
         this.context = context;
         this.game = game;
+        this.video = video;
         this.bonePalette = new float[game.model.boneCount * 16];
         Typeface tf;
         try {
@@ -104,6 +106,10 @@ final class GameRenderer implements GLSurfaceView.Renderer {
         }
         GLES20.glBindBuffer(GLES20.GL_ELEMENT_ARRAY_BUFFER, 0);
         smokeTex = texture(loadBitmap("smoke.png"));
+        video.onSurfaceCreated();
+        videoProg = program(VIDEO_VS, video.external()
+                ? "#extension GL_OES_EGL_image_external : require\n" + VIDEO_FS.replace("SAMPLER", "samplerExternalOES")
+                : VIDEO_FS.replace("SAMPLER", "sampler2D"));
         GLES20.glEnable(GLES20.GL_DEPTH_TEST);
         GLES20.glDisable(GLES20.GL_CULL_FACE);
         lastNanos = 0;
@@ -136,6 +142,8 @@ final class GameRenderer implements GLSurfaceView.Renderer {
 
         GLES20.glClear(GLES20.GL_COLOR_BUFFER_BIT | GLES20.GL_DEPTH_BUFFER_BIT);
         drawSky();
+        video.update(game.videoActive, Game.muted);
+        if (video.visible()) drawVideo();
         drawWorld(wx);
         drawDatBoi();
         drawTexts(wx);
@@ -154,6 +162,33 @@ final class GameRenderer implements GLSurfaceView.Renderer {
         GLES20.glVertexAttribPointer(a, 3, GLES20.GL_FLOAT, false, 20, 0);
         GLES20.glDrawArrays(GLES20.GL_TRIANGLE_FAN, 0, 4);
         GLES20.glDisableVertexAttribArray(a);
+        GLES20.glEnable(GLES20.GL_DEPTH_TEST);
+        GLES20.glDepthMask(true);
+    }
+
+    /** Full screen "cover" quad behind the 3D scene, green keyed out. */
+    private final float[] crop = new float[2];
+
+    private void drawVideo() {
+        float screen = (float) width / height, clip = 16f / 9f;
+        crop[0] = screen < clip ? screen / clip : 1f;
+        crop[1] = screen > clip ? clip / screen : 1f;
+        GLES20.glDepthMask(false);
+        GLES20.glDisable(GLES20.GL_DEPTH_TEST);
+        GLES20.glEnable(GLES20.GL_BLEND);
+        GLES20.glBlendFunc(GLES20.GL_SRC_ALPHA, GLES20.GL_ONE_MINUS_SRC_ALPHA);
+        GLES20.glUseProgram(videoProg);
+        GLES20.glUniformMatrix4fv(loc(videoProg, "uTexM"), 1, false, video.texMatrix(), 0);
+        GLES20.glUniform2fv(loc(videoProg, "uCrop"), 1, crop, 0);
+        GLES20.glActiveTexture(GLES20.GL_TEXTURE0);
+        GLES20.glBindTexture(video.external() ? 0x8D65 : GLES20.GL_TEXTURE_2D, video.texture());
+        GLES20.glUniform1i(loc(videoProg, "uTex"), 0);
+        GLES20.glBindBuffer(GLES20.GL_ARRAY_BUFFER, quadVbo);
+        int a = attr(videoProg, "aPos");
+        GLES20.glEnableVertexAttribArray(a);
+        GLES20.glVertexAttribPointer(a, 3, GLES20.GL_FLOAT, false, 20, 0);
+        GLES20.glDrawArrays(GLES20.GL_TRIANGLE_FAN, 0, 4);
+        GLES20.glDisable(GLES20.GL_BLEND);
         GLES20.glEnable(GLES20.GL_DEPTH_TEST);
         GLES20.glDepthMask(true);
     }
@@ -610,6 +645,31 @@ final class GameRenderer implements GLSurfaceView.Renderer {
             + "uniform vec4 uColor;\n"
             + "varying vec2 vUV;\n"
             + "void main() { gl_FragColor = texture2D(uTex, vUV) * uColor; }\n";
+
+    private static final String VIDEO_VS =
+            "uniform mat4 uTexM;\n"
+            + "uniform vec2 uCrop;\n"
+            + "attribute vec3 aPos;\n"
+            + "varying vec2 vUV;\n"
+            + "void main() {\n"
+            + "  vec2 uv = 0.5 + (aPos.xy - 0.5) * uCrop;\n"
+            + "  vUV = (uTexM * vec4(uv, 0.0, 1.0)).xy;\n"
+            + "  gl_Position = vec4(aPos.xy * 2.0 - 1.0, 0.999, 1.0);\n"
+            + "}\n";
+
+    // chroma key: the more green dominates red and blue, the more transparent
+    private static final String VIDEO_FS =
+            "precision mediump float;\n"
+            + "uniform SAMPLER uTex;\n"
+            + "varying vec2 vUV;\n"
+            + "void main() {\n"
+            + "  vec4 c = texture2D(uTex, vUV);\n"
+            + "  float rb = max(c.r, c.b);\n"
+            + "  float a = 1.0 - smoothstep(0.12, 0.30, c.g - rb);\n"
+            + "  if (a < 0.02) discard;\n"
+            + "  c.g = min(c.g, rb + 0.08);\n"
+            + "  gl_FragColor = vec4(c.rgb, a);\n"
+            + "}\n";
 
     // full screen quad from the shared unit quad, sky colour from the view ray
     private static final String SKY_VS =

@@ -26,6 +26,7 @@ public final class MainActivity extends Activity implements HudView.Actions {
 
     private Game game;
     private Sound sound;
+    private VideoBackground video;
     private Save save;
 
     @Override
@@ -59,7 +60,8 @@ public final class MainActivity extends Activity implements HudView.Actions {
         glView.setEGLContextClientVersion(2);
         glView.setEGLConfigChooser(8, 8, 8, 8, 16, 0);
         glView.setPreserveEGLContextOnPause(true);
-        glView.setRenderer(new GameRenderer(this, game));
+        video = new VideoBackground(this);
+        glView.setRenderer(new GameRenderer(this, game, video));
 
         hud = new HudView(this, game, sound, this);
         FrameLayout root = new FrameLayout(this);
@@ -116,12 +118,14 @@ public final class MainActivity extends Activity implements HudView.Actions {
     protected void onResume() {
         super.onResume();
         glView.onResume();
+        video.onAppPause(false);
         sound.onAppPause(false);
     }
 
     @Override
     protected void onPause() {
         sound.onAppPause(true);
+        video.onAppPause(true);
         glView.onPause();
         super.onPause();
     }
@@ -129,6 +133,7 @@ public final class MainActivity extends Activity implements HudView.Actions {
     @Override
     protected void onDestroy() {
         sound.release();
+        video.release();
         super.onDestroy();
     }
 
