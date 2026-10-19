@@ -26,6 +26,8 @@ final class Sound {
     private boolean musicStarted;      // static playingmusic in the original
     private float musicTimer = -1f;
     private volatile boolean paused, appPaused;
+    private MediaPlayer special;        // main thread only: the -10 m track
+    private volatile boolean specialOn;
 
     Sound(Context context) {
         this.context = context;
@@ -93,7 +95,7 @@ final class Sound {
             fd.close();
             music.setLooping(true);
             music.prepare();
-            if (!paused && !appPaused) music.start();
+            applyMusic();
         } catch (IOException e) {
             Log.e(TAG, "cannot start music", e);
         }
@@ -119,6 +121,61 @@ final class Sound {
         ohShitStream = pool.play(ohShit, 0.6f, 0.6f, 1, 0, 0.97f);
     }
 
+    /**
+     * Not in the original: at -10 m the background music is swapped for the
+     * "I Keep Holding On" track until the next restart.
+     */
+    void setSpecialMusic(boolean on) {
+        if (specialOn == on) return;
+        specialOn = on;
+        main.post(new Runnable() {
+            @Override
+            public void run() {
+                if (specialOn && special == null) special = createPlayer("minus10.ogg");
+                if (!specialOn && special != null) {
+                    special.pause();
+                    special.seekTo(0);
+                }
+                applyMusic();
+            }
+        });
+    }
+
+    private MediaPlayer createPlayer(String asset) {
+        try {
+            AssetFileDescriptor fd = context.getAssets().openFd(asset);
+            MediaPlayer p = new MediaPlayer();
+            p.setAudioAttributes(new AudioAttributes.Builder()
+                    .setUsage(AudioAttributes.USAGE_GAME)
+                    .setContentType(AudioAttributes.CONTENT_TYPE_MUSIC)
+                    .build());
+            p.setDataSource(fd.getFileDescriptor(), fd.getStartOffset(), fd.getLength());
+            fd.close();
+            p.setLooping(true);
+            p.prepare();
+            return p;
+        } catch (IOException e) {
+            Log.e(TAG, "cannot load " + asset, e);
+            return null;
+        }
+    }
+
+    /** Main thread: play exactly one of the two music tracks (or none when silent). */
+    private void applyMusic() {
+        boolean silent = paused || appPaused;
+        boolean useSpecial = specialOn && special != null;
+        if (music != null) {
+            boolean want = !silent && !useSpecial;
+            if (want && !music.isPlaying()) music.start();
+            else if (!want && music.isPlaying()) music.pause();
+        }
+        if (special != null) {
+            boolean want = !silent && useSpecial;
+            if (want && !special.isPlaying()) special.start();
+            else if (!want && special.isPlaying()) special.pause();
+        }
+    }
+
     /** AudioListener.pause */
     void setPaused(boolean p) {
         paused = p;
@@ -136,10 +193,7 @@ final class Sound {
         main.post(new Runnable() {
             @Override
             public void run() {
-                if (music == null) return;
-                boolean silentNow = paused || appPaused;
-                if (silentNow && music.isPlaying()) music.pause();
-                else if (!silentNow && !music.isPlaying()) music.start();
+                applyMusic();
             }
         });
     }
@@ -148,6 +202,8 @@ final class Sound {
     void release() {
         pool.release();
         if (music != null) music.release();
+        if (special != null) special.release();
         music = null;
+        special = null;
     }
 }

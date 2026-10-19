@@ -47,6 +47,8 @@ final class Game {
     /** Not in the original: the Get Rekt green screen clip plays behind dat boi after 1000 m. */
     static final float VIDEO_AT = 1000f;
     volatile boolean videoActive;
+    /** Not in the original: going back to -10 m switches the music. */
+    static final float SPECIAL_MUSIC_AT = -10f;
     private float ohShitCooldown;
 
     // animation / transforms (GL thread only)
@@ -93,6 +95,7 @@ final class Game {
         currentScore = maxScore = 0;
         pastTen = pastTwen = pastThir = false;
         videoActive = false;
+        sound.setSpecialMusic(false);
         animTime = 0;
         animSpeed = 0;
         amountAlready = 10;
@@ -204,6 +207,7 @@ final class Game {
             accessoryActive[2] = true;
         }
         if (currentScore > VIDEO_AT) videoActive = true;
+        if (currentScore <= SPECIAL_MUSIC_AT) sound.setSpecialMusic(true);
         if (currentScore > BLUNT_AT && !pastThir) {
             pastThir = true;
             accessoryActive[3] = true;

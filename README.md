@@ -42,6 +42,11 @@ Superati i 1000 m parte in loop, dietro la rana, il video "Get Rekt" (`assets/ge
 con il verde reso trasparente (chroma key nello shader); l'audio segue il tasto per
 disattivare i suoni. Si ferma al "restert?".
 
+### Extra a -10 m
+
+Andando all'indietro fino a -10 m la musica di sottofondo diventa "I Keep Holding On"
+(`assets/minus10.ogg`), in loop fino al "restert?", poi torna la musica originale.
+
 ### Salvare i progressi
 
 Nel pannello `help` ci sono due pulsanti in più: **export ur progress** salva record e
