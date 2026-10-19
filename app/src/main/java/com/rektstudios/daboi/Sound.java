@@ -181,7 +181,7 @@ final class Sound {
             else if (!want && music.isPlaying()) music.pause();
         }
         if (special != null) {
-            // muted, the song keeps running silently so the 0:49 video cue still fires
+            // muted, the song keeps running silently so the 0:48 video cue still fires
             boolean want = !appPaused && useSpecial;
             float v = paused ? 0f : 1f;
             special.setVolume(v, v);

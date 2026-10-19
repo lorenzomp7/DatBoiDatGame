@@ -46,9 +46,9 @@ final class Game {
     private boolean pastTen, pastTwen, pastThir;
     /**
      * Not in the original: the Get Rekt green screen clip plays behind dat boi once
-     * the -10 m song reaches 0:49.
+     * the -10 m song reaches 0:48.
      */
-    static final int VIDEO_AT_SONG_MS = 49000;
+    static final int VIDEO_AT_SONG_MS = 48000;
     volatile boolean videoActive;
     /** Not in the original: going back to -10 m switches the music. */
     static final float SPECIAL_MUSIC_AT = -10f;

@@ -146,9 +146,11 @@ final class GameRenderer implements GLSurfaceView.Renderer {
 
         GLES20.glClear(GLES20.GL_COLOR_BUFFER_BIT | GLES20.GL_DEPTH_BUFFER_BIT);
         drawSky();
+        drawGround(wx);
+        // the green screen clip covers sky and ground, but stays behind the ruler and dat boi
         video.update(game.videoActive, Game.muted);
         if (video.visible()) drawVideo();
-        drawWorld(wx);
+        drawRuler(wx);
         drawDatBoi();
         drawTexts(wx);
         drawSmoke();
@@ -208,7 +210,7 @@ final class GameRenderer implements GLSurfaceView.Renderer {
         GLES20.glUniform3fv(loc(prog, "uCam"), 1, cam, 0);
     }
 
-    private void drawWorld(float wx) {
+    private void drawGround(float wx) {
         beginLit(litProg);
         // Ground and ruler reach 10 km, but only the stretch around the camera is
         // drawn: kilometre-long triangles far outside the view jitter on mobile GPUs.
@@ -220,6 +222,10 @@ final class GameRenderer implements GLSurfaceView.Renderer {
             Matrix.scaleM(model, 0, g1 - g0, 1f, VISIBLE_RANGE);
             drawLit(groundVbo, GLES20.GL_TRIANGLE_FAN, 4, model, WHITE);
         }
+    }
+
+    private void drawRuler(float wx) {
+        beginLit(litProg);
         // wholeRuler: white bar along the first 10 km
         float r0 = Math.max(0f, wx - VISIBLE_RANGE), r1 = Math.min(RULER_LENGTH, wx + VISIBLE_RANGE);
         if (r1 > r0) {

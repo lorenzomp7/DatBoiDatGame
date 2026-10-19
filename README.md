@@ -39,9 +39,9 @@ reimplementato, la scena Unity (`level0`) letta oggetto per oggetto.
 ### Extra a -10 m
 
 Andando all'indietro fino a -10 m la musica di sottofondo diventa "I Keep Holding On"
-(`assets/minus10.ogg`, +10% di volume rispetto all'originale), in loop fino al
-"restert?", poi torna la musica originale. Quando il brano arriva a 0:49 parte, dietro
-la rana, il video "Get Rekt" (`assets/getrekt.mp4`) con il verde reso trasparente
+(`assets/minus10.ogg`, +10% di volume su tutto il brano), in loop fino al
+"restert?", poi torna la musica originale. Quando il brano arriva a 0:48 parte, dietro
+la rana e davanti al terreno, il video "Get Rekt" (`assets/getrekt.mp4`) con il verde reso trasparente
 (chroma key nello shader); resta in loop fino al "restert?".
 
 ### Terreno e righello
