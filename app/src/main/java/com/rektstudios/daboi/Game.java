@@ -42,6 +42,12 @@ final class Game {
 
     // gameControllerScript state
     float currentScore, maxScore, recordScore, distanceUnicycled;
+    /**
+     * Not in the original: the MLG record works like "ur record" (farthest forward),
+     * but only runs that went back to -10 m count; the first such run unlocks it.
+     */
+    float minScore, mlgRecord;
+    boolean mlgUnlocked;
     private float distanceLast;
     private boolean pastTen, pastTwen, pastThir;
     /**
@@ -76,6 +82,8 @@ final class Game {
     volatile String scoreText = "dat boi score";
     volatile String endScoreText = "Dis run:";
     volatile String endRecordText = "Ur Rekord is:";
+    /** Empty until the MLG record is unlocked. */
+    volatile String endMlgText = "";
     volatile String cycledText = "";
 
     Game(Model model, Sound sound, Save save) {
@@ -93,9 +101,11 @@ final class Game {
     void loadScene() {
         phys = new Physics();
         recordScore = save.record();
+        mlgUnlocked = save.mlgUnlocked();
+        mlgRecord = save.mlgRecord();
         distanceUnicycled = save.distance();
         distanceLast = 0;
-        currentScore = maxScore = 0;
+        currentScore = maxScore = minScore = 0;
         pastTen = pastTwen = pastThir = false;
         videoActive = false;
         sound.setSpecialMusic(false);
@@ -115,6 +125,7 @@ final class Game {
         scoreText = "dat boi score";
         endScoreText = "Dis run:";
         endRecordText = "Ur Rekord is:";
+        endMlgText = "";
         if (firstLaunch) {
             sound.playOhShit();
             timeScale = 0f;
@@ -156,6 +167,10 @@ final class Game {
     /** Progress was imported from a file. */
     void onProgressImported() {
         recordScore = Math.max(recordScore, save.record());
+        if (save.mlgUnlocked()) {
+            mlgRecord = mlgUnlocked ? Math.max(mlgRecord, save.mlgRecord()) : save.mlgRecord();
+            mlgUnlocked = true;
+        }
         distanceUnicycled = Math.max(distanceUnicycled, save.distance());
     }
 
@@ -202,6 +217,7 @@ final class Game {
         distanceUnicycled += Math.abs(currentScore - distanceLast);
         distanceLast = currentScore;
         if (currentScore >= maxScore) maxScore = currentScore;
+        if (currentScore <= minScore) minScore = currentScore;
         if (currentScore > SHADES_AT && !pastTen) {
             pastTen = true;
             accessoryActive[1] = true;
@@ -244,6 +260,13 @@ final class Game {
         firstLaunch = false;
         save.store(recordScore, distanceUnicycled);
         endRecordText = "ur record: " + cropDistance(recordScore);
+        // a run that went back to -10 m counts for the MLG record, scored forwards
+        if (minScore <= SPECIAL_MUSIC_AT) {
+            if (!mlgUnlocked || maxScore > mlgRecord) mlgRecord = maxScore;
+            mlgUnlocked = true;
+            save.storeMlg(mlgRecord);
+        }
+        if (mlgUnlocked) endMlgText = "MLG: " + cropDistance(mlgRecord);
         endScoreText = "Dat Run: " + cropDistance(currentScore);
         scoreVisible = false;
     }

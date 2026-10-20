@@ -28,6 +28,20 @@ final class Save {
         prefs.edit().putFloat("DatBoiRange", record).putFloat("Distance", distance).apply();
     }
 
+    /** Not in the original: the MLG record, unlocked by going back to -10 m. */
+    boolean mlgUnlocked() {
+        return prefs.getBoolean("MlgUnlocked", false);
+    }
+
+    /** Best forward distance among the runs that went back to -10 m. */
+    float mlgRecord() {
+        return prefs.getFloat("MlgRange", 0f);
+    }
+
+    void storeMlg(float mlgRecord) {
+        prefs.edit().putBoolean("MlgUnlocked", true).putFloat("MlgRange", mlgRecord).apply();
+    }
+
     /** Progress file for "export progress" (survives reinstalls and phone changes). */
     String exportJson() {
         try {
@@ -36,6 +50,8 @@ final class Save {
                     .put("version", 1)
                     .put("record", (double) record())
                     .put("distance", (double) prefs.getFloat("Distance", 0f))
+                    .put("mlg_unlocked", mlgUnlocked())
+                    .put("mlg_record", (double) mlgRecord())
                     .toString(2);
         } catch (JSONException e) {
             throw new IllegalStateException(e);
@@ -52,6 +68,10 @@ final class Save {
         float record = Math.max(record(), (float) o.getDouble("record"));
         float distance = Math.max(prefs.getFloat("Distance", 0f), (float) o.optDouble("distance", 0));
         store(record, distance);
+        if (o.optBoolean("mlg_unlocked", false)) {
+            float mlg = (float) o.optDouble("mlg_record", 0);
+            storeMlg(mlgUnlocked() ? Math.max(mlgRecord(), mlg) : mlg);
+        }
         return record;
     }
 }

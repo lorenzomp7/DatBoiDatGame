@@ -94,7 +94,7 @@ final class HudView extends View {
     private final El deathPanel, faqPanel;
     private final List<El> deathEls = new ArrayList<>();
     private final List<El> faqEls = new ArrayList<>();
-    private final El muteText, endScore, endRecord;
+    private final El muteText, endScore, endRecord, endMlg;
 
     private final TextPaint textPaint = new TextPaint(Paint.ANTI_ALIAS_FLAG);
     private final Paint fill = new Paint(Paint.ANTI_ALIAS_FLAG);
@@ -151,6 +151,10 @@ final class HudView extends View {
         endRecord = new El(deathPanel, 0, 0, 0, 0, 223.6f, 76.2f, 360.5f, 95f, 3.6f)
                 .text("Ur Rekord is:", 36, ALIGN_MIDDLE_LEFT);
         deathEls.add(endRecord);
+        // not in the original: the MLG record, right under "ur record"
+        endMlg = new El(deathPanel, 0, 0, 0, 0, 223.6f, 30f, 360.5f, 60f, 3.6f)
+                .text("", 36, ALIGN_MIDDLE_LEFT);
+        deathEls.add(endMlg);
 
         // Canvas/Button: "Start da Gaem"
         startButton = new El(root, 0.5f, 0.5f, 0.5f, 0.5f, 0f, 4.3f, 224f, 54f, 0f);
@@ -239,6 +243,7 @@ final class HudView extends View {
             muteText.text = Game.muted ? "Enable dank sounds" : "Disable dank sounds";
             endScore.text = game.endScoreText;
             endRecord.text = game.endRecordText;
+            endMlg.text = game.endMlgText;
             draw(c, deathPanel);
             for (El e : deathEls) draw(c, e);
         }
@@ -291,7 +296,7 @@ final class HudView extends View {
                 c.drawRoundRect(rect, r, r, stroke);
             }
         }
-        if (e.text != null) drawText(c, e, cxp, cyp, wp, hp);
+        if (e.text != null && !e.text.isEmpty()) drawText(c, e, cxp, cyp, wp, hp);
         c.restore();
     }
 

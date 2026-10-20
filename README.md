@@ -44,6 +44,13 @@ Andando all'indietro fino a -10 m la musica di sottofondo diventa "I Keep Holdin
 la rana e davanti al terreno, il video "Get Rekt" (`assets/getrekt.mp4`) con il verde reso trasparente
 (chroma key nello shader); resta in loop fino al "restert?".
 
+### Record MLG
+
+Un secondo record, **MLG**, funziona come "ur record" (la distanza più lontana raggiunta
+in avanti) ma conta solo le partite in cui sei arrivato a -10 m. La prima di queste
+partite lo sblocca; da allora compare sotto "ur record" nella schermata di morte. Viene
+salvato e passa anche da export/import dei progressi.
+
 ### Terreno e righello
 
 Il terreno bianco e la barra dei metri arrivano a 10 km (nell'originale finivano a 500 m
