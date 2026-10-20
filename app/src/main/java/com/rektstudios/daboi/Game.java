@@ -44,7 +44,8 @@ final class Game {
     float currentScore, maxScore, recordScore, distanceUnicycled;
     /**
      * Not in the original: the MLG record works like "ur record" (farthest forward),
-     * but only runs that went back to -10 m count; the first such run unlocks it.
+     * but only runs that went back to -10 m count (and those runs no longer count
+     * for "ur record"); the first such run unlocks it.
      */
     float minScore, mlgRecord;
     boolean mlgUnlocked;
@@ -256,16 +257,20 @@ final class Game {
     private void die() {
         ded = true;
         panelVisible = true;
-        if (maxScore > recordScore) recordScore = maxScore;
-        firstLaunch = false;
-        save.store(recordScore, distanceUnicycled);
-        endRecordText = "ur record: " + cropDistance(recordScore);
-        // a run that went back to -10 m counts for the MLG record, scored forwards
-        if (minScore <= SPECIAL_MUSIC_AT) {
+        // A run is either normal or MLG, never both: a run that went back to -10 m
+        // only counts for the MLG record (scored forwards), every other run only
+        // for "ur record".
+        boolean mlgRun = minScore <= SPECIAL_MUSIC_AT;
+        if (mlgRun) {
             if (!mlgUnlocked || maxScore > mlgRecord) mlgRecord = maxScore;
             mlgUnlocked = true;
             save.storeMlg(mlgRecord);
+        } else if (maxScore > recordScore) {
+            recordScore = maxScore;
         }
+        firstLaunch = false;
+        save.store(recordScore, distanceUnicycled);
+        endRecordText = "ur record: " + cropDistance(recordScore);
         if (mlgUnlocked) endMlgText = "MLG: " + cropDistance(mlgRecord);
         endScoreText = "Dat Run: " + cropDistance(currentScore);
         scoreVisible = false;
