@@ -52,7 +52,9 @@ Tra un video e l'altro non c'è mai uno stacco: due lettori si danno il cambio, 
 successivo è già pronto mentre gira quello attuale, e l'ultimo fotogramma resta a schermo
 finché il nuovo non ha il primo. I video MLG e "Snoop Dogg" sono muti e il loro audio è un'unica
 traccia (`assets/mlgchain.ogg`) che parte un istante prima di "1 MLG": così nessun video
-resta fermo sul primo fotogramma ad aspettare l'audio. Ogni volta che il brano finisce compare per qualche
+resta fermo sul primo fotogramma ad aspettare l'audio. `snoop.mp4` contiene già "Snoop Dogg" ripetuto 10 volte
+(95 s, più di quanto resta mai a schermo tra due serie MLG), perché il lettore di
+Android si ferma mezzo secondo ogni volta che riparte da capo. Ogni volta che il brano finisce compare per qualche
 secondo una frase a caso in stile Dat Boi ("1 more time 4 da boiz", ...). Questa frase e le scritte "BACKFLIP MODE ACTIVATED!!1!" e "MLG MODE ACTIVATED!!1!" sono nere e senza riquadro, come le altre scritte del gioco.
 
 ### Modalità Backflip

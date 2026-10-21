@@ -38,7 +38,11 @@ final class VideoBackground {
     private static final String[] ASSETS = {null, "mlg1.mp4", "normal1000.mp4", "mlg2.mp4", "mlg3.mp4", "snoop.mp4"};
     /** Green screen clips get their green keyed out; "2 MLG" has a full background. */
     private static final boolean[] KEYED = {false, true, true, false, true, true};
-    /** "Snoop Dogg" repeats until it is replaced; every other clip plays once. */
+    /**
+     * "Snoop Dogg" repeats until it is replaced; every other clip plays once. The asset
+     * already holds the clip 10 times over (95 s, longer than it ever stays on screen
+     * between two MLG cues), because MediaPlayer stalls for half a second when it loops.
+     */
     private static final boolean[] LOOP = {false, false, false, false, false, true};
     /** The clip that follows each one as soon as it ends. */
     private static final int[] AUTO_NEXT = {NONE, MLG2, NONE, MLG3, SNOOP, NONE};
