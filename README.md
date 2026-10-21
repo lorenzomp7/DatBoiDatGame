@@ -44,7 +44,8 @@ Andando all'indietro fino a -10 m la musica di sottofondo diventa "I Keep Holdin
 la rana e davanti al terreno, il video "1 MLG" (`assets/mlg1.mp4`) con il verde reso
 trasparente (chroma key nello shader); appena finisce parte il video "2 MLG"
 (`assets/mlg2.mp4`, a sfondo pieno, senza trasparenza) e poi "3 MLG" (`assets/mlg3.mp4`,
-verde trasparente). Ognuno parte una sola volta per partita.
+verde trasparente), ognuno una sola volta per partita. Dopo i tre video parte "Snoop Dogg"
+(`assets/snoop.mp4`, verde trasparente), che si ripete fino al "restert?".
 
 ### Record MLG
 
