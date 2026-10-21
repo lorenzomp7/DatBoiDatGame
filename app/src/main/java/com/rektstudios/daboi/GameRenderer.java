@@ -148,9 +148,7 @@ final class GameRenderer implements GLSurfaceView.Renderer {
         drawSky();
         drawGround(wx);
         // the green screen clip covers sky and ground, but stays behind the ruler and dat boi
-        video.update(game.videoClip, game.videoSeq, Game.muted);
-        int finished = video.finishedClip();
-        if (finished != VideoBackground.NONE) game.onVideoFinished(finished);
+        video.update(game.videoClip, game.videoSeq, game.videoHint, Game.muted);
         if (video.visible()) drawVideo();
         drawRuler(wx);
         drawDatBoi();

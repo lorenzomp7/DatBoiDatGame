@@ -40,20 +40,33 @@ reimplementato, la scena Unity (`level0`) letta oggetto per oggetto.
 
 Andando all'indietro fino a -10 m la musica di sottofondo diventa "I Keep Holding On"
 (`assets/minus10.ogg`, +10% di volume su tutto il brano), in loop fino al
-"restert?", poi torna la musica originale. Quando il brano arriva a 0:48 parte, dietro
+"restert?", poi torna la musica originale. Quando il brano arriva a 0:49 parte, dietro
 la rana e davanti al terreno, il video "1 MLG" (`assets/mlg1.mp4`) con il verde reso
 trasparente (chroma key nello shader); appena finisce parte il video "2 MLG"
 (`assets/mlg2.mp4`, a sfondo pieno, senza trasparenza) e poi "3 MLG" (`assets/mlg3.mp4`,
 verde trasparente). Dopo i tre video parte "Snoop Dogg" (`assets/snoop.mp4`, verde
 trasparente) a ripetizione. Quando il brano arriva a 2:28 "Snoop Dogg" si ferma e
 ripartono "1 MLG", "2 MLG" e "3 MLG", poi di nuovo "Snoop Dogg" a ripetizione; la stessa
-sequenza riparte a 0:48 e a 2:28 di ogni ripetizione del brano, fino al "restert?".
+sequenza riparte a 0:49 e a 2:28 di ogni ripetizione del brano, fino al "restert?".
+Tra un video e l'altro non c'è mai uno stacco: due lettori si danno il cambio, il video
+successivo è già pronto mentre gira quello attuale, e l'ultimo fotogramma resta a schermo
+finché il nuovo non ha il primo. Ogni volta che il brano finisce compare per qualche
+secondo una frase a caso in stile Dat Boi ("1 more time 4 da boiz", ...).
+
+### Modalità Backflip
+
+Andando all'indietro oltre -30 m la partita diventa **Backflip** ("BACKFLIP MODE
+ACTIVATED!!1!"): il suo record è la distanza più lontana raggiunta all'indietro. Se poi
+torni in avanti oltre 0 m la partita diventa per sempre MLG ("MLG MODE ACTIVATED!!1!") e
+conta per il record MLG. Il record Backflip si sblocca la prima volta, compare sotto
+"MLG" nella schermata di morte e passa da export/import dei progressi. Musica e video
+restano quelli della modalità MLG.
 
 ### Record MLG
 
 Un secondo record, **MLG**, funziona come "ur record" (la distanza più lontana raggiunta
 in avanti) ma conta solo le partite in cui sei arrivato a -10 m; quelle partite non
-contano per "ur record" (una partita è o normale o MLG, mai entrambe). La prima di queste
+contano per "ur record" (una partita è normale, MLG o Backflip, mai più di una). La prima di queste
 partite lo sblocca; da allora compare sotto "ur record" nella schermata di morte. Viene
 salvato e passa anche da export/import dei progressi.
 

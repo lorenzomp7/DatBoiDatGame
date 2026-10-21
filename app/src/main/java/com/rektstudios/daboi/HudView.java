@@ -94,7 +94,8 @@ final class HudView extends View {
     private final El deathPanel, faqPanel;
     private final List<El> deathEls = new ArrayList<>();
     private final List<El> faqEls = new ArrayList<>();
-    private final El muteText, endScore, endRecord, endMlg;
+    private final El muteText, endScore, endRecord, endMlg, endBackflip;
+    private final El banner, bannerText;
 
     private final TextPaint textPaint = new TextPaint(Paint.ANTI_ALIAS_FLAG);
     private final Paint fill = new Paint(Paint.ANTI_ALIAS_FLAG);
@@ -148,13 +149,22 @@ final class HudView extends View {
         endScore = new El(deathPanel, 1, 1, 1, 1, -249.8f, -79.4f, 466.4f, 119f, -0.9f)
                 .text("Dis run:", 53, ALIGN_MIDDLE_LEFT);
         deathEls.add(endScore);
-        endRecord = new El(deathPanel, 0, 0, 0, 0, 223.6f, 76.2f, 360.5f, 95f, 3.6f)
+        endRecord = new El(deathPanel, 0, 0, 0, 0, 223.6f, 104f, 360.5f, 46f, 3.6f)
                 .text("Ur Rekord is:", 36, ALIGN_MIDDLE_LEFT);
         deathEls.add(endRecord);
-        // not in the original: the MLG record, right under "ur record"
-        endMlg = new El(deathPanel, 0, 0, 0, 0, 223.6f, 30f, 360.5f, 60f, 3.6f)
+        // not in the original: the MLG and Backflip records, under "ur record"
+        endMlg = new El(deathPanel, 0, 0, 0, 0, 223.6f, 68f, 360.5f, 46f, 3.6f)
                 .text("", 36, ALIGN_MIDDLE_LEFT);
         deathEls.add(endMlg);
+        endBackflip = new El(deathPanel, 0, 0, 0, 0, 223.6f, 32f, 360.5f, 46f, 3.6f)
+                .text("", 36, ALIGN_MIDDLE_LEFT);
+        deathEls.add(endBackflip);
+
+        // not in the original: a crooked white box with red text for game messages
+        banner = new El(root, 0.5f, 1f, 0.5f, 1f, 0f, -108f, 520f, 92f, 0f);
+        banner.bg = BG_BUTTON;
+        bannerText = new El(banner, 0, 0, 1, 1, 0, 0, -16f, -10f, 0).text("", 40, ALIGN_MIDDLE_CENTER).bestFit(10, 44);
+        bannerText.textColor = 0xffff0000;
 
         // Canvas/Button: "Start da Gaem"
         startButton = new El(root, 0.5f, 0.5f, 0.5f, 0.5f, 0f, 4.3f, 224f, 54f, 0f);
@@ -244,6 +254,7 @@ final class HudView extends View {
             endScore.text = game.endScoreText;
             endRecord.text = game.endRecordText;
             endMlg.text = game.endMlgText;
+            endBackflip.text = game.endBackflipText;
             draw(c, deathPanel);
             for (El e : deathEls) draw(c, e);
         }
@@ -255,8 +266,10 @@ final class HudView extends View {
             draw(c, faqPanel);
             for (El e : faqEls) draw(c, e);
         }
-        // hitmarkers (destroyafter 0.78 s, real time)
         long now = SystemClock.uptimeMillis();
+        long left = game.bannerUntil - now;
+        if (left > 0) drawBanner(c, game.bannerText, Game.BANNER_MS - left);
+        // hitmarkers (destroyafter 0.78 s, real time)
         float hs = 156.49f * scale;
         for (int i = hitmarkers.size() - 1; i >= 0; i--) {
             float[] h = hitmarkers.get(i);
@@ -268,6 +281,24 @@ final class HudView extends View {
             c.drawBitmap(hitmarkerBmp, null, rect, bitmapPaint);
         }
         postInvalidateOnAnimation();
+    }
+
+    /** Pops in, wobbles like the rest of the crooked UI, then pops out. */
+    private void drawBanner(Canvas c, String text, long age) {
+        float t = age / 1000f, total = Game.BANNER_MS / 1000f;
+        float pop = Math.min(1f, t / 0.15f) * Math.min(1f, (total - t) / 0.15f);
+        banner.rot = -4f + 3f * (float) Math.sin(t * 7f);
+        bannerText.text = text;
+        layout(banner);
+        float cx = toPxX(banner.cx), cy = toPxY(banner.cy);
+        float k = pop * (1f + 0.04f * (float) Math.sin(t * 13f));
+        c.save();
+        c.scale(k, k, cx, cy);
+        draw(c, banner);
+        // the text rotates with its box
+        c.rotate(-banner.rot, cx, cy);
+        draw(c, bannerText);
+        c.restore();
     }
 
     private float toPxX(float x) {

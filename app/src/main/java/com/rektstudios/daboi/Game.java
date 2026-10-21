@@ -50,20 +50,34 @@ final class Game {
      */
     float minScore, mlgRecord;
     boolean mlgUnlocked;
+    /**
+     * Not in the original: going past -30 m turns the run into a Backflip run, scored
+     * backwards (its record is the farthest you went back); coming back past 0 m turns
+     * it into an MLG run for good.
+     */
+    static final float BACKFLIP_AT = -30f;
+    static final int MODE_NORMAL = 0, MODE_MLG = 1, MODE_BACKFLIP = 2;
+    int mode;
+    private boolean backflipLeft;
+    float backflipRecord;
+    boolean backflipUnlocked;
     private float distanceLast;
     private boolean pastTen, pastTwen, pastThir;
     /**
      * Not in the original: the MLG clips ("1 MLG", "2 MLG", "3 MLG", then "Snoop Dogg"
-     * on repeat) start over each time the -10 m song reaches 0:48 and 2:28, on every
+     * on repeat) start over each time the -10 m song reaches 0:49 and 2:28, on every
      * repetition of the song.
      */
-    static final int[] MLG_VIDEO_AT_SONG_MS = {48000, 148000};
+    static final int[] MLG_VIDEO_AT_SONG_MS = {49000, 148000};
     /** A backwards jump of the song position bigger than this is the song looping. */
     private static final int SONG_LOOP_JUMP_MS = 5000;
     /** Not in the original: a normal run (never at -10 m) plays its own clip at these marks. */
     static final float[] NORMAL_VIDEO_AT = {1000f, 2000f, 3000f, 10000f, 20000f, 30000f};
-    /** Clip to show (VideoBackground.NONE / MLG1 / NORMAL / MLG2), and a counter bumped on every request. */
-    volatile int videoClip, videoSeq;
+    /**
+     * Clip to start (VideoBackground.NONE / MLG1 / NORMAL; "1 MLG" carries on by itself),
+     * a counter bumped on every request, and the clip that may be asked for next.
+     */
+    volatile int videoClip, videoSeq, videoHint;
     private int lastSongMs;
     private int nextNormalVideo;
     /** Not in the original: going back to -10 m switches the music. */
@@ -94,6 +108,21 @@ final class Game {
     volatile String endRecordText = "Ur Rekord is:";
     /** Empty until the MLG record is unlocked. */
     volatile String endMlgText = "";
+    volatile String endBackflipText = "";
+    /** Not in the original: a line shown on screen for a few seconds (real time). */
+    volatile String bannerText = "";
+    volatile long bannerUntil;
+    static final long BANNER_MS = 4000;
+    /** Shown every time the -10 m song ends. */
+    private static final String[] SONG_END_LINES = {
+            "o shit waddup!!1! da song endded but dat boi keeps cyclin",
+            "u survivd da whole song m8\nMOM GET DA CAMERA",
+            "DAT BOI STILL HOLDIN ON\n(his hope will nevr die)",
+            "1 more time 4 da boiz",
+            "da song is ovr but u didnt diededed yet?!?!",
+            "2 dank 4 da song\nhere it comes again",
+    };
+    private int lastSongLine = -1;
     volatile String cycledText = "";
 
     Game(Model model, Sound sound, Save save) {
@@ -113,6 +142,11 @@ final class Game {
         recordScore = save.record();
         mlgUnlocked = save.mlgUnlocked();
         mlgRecord = save.mlgRecord();
+        backflipUnlocked = save.backflipUnlocked();
+        backflipRecord = save.backflipRecord();
+        mode = MODE_NORMAL;
+        backflipLeft = false;
+        bannerUntil = 0;
         distanceUnicycled = save.distance();
         distanceLast = 0;
         currentScore = maxScore = minScore = 0;
@@ -138,6 +172,7 @@ final class Game {
         endScoreText = "Dis run:";
         endRecordText = "Ur Rekord is:";
         endMlgText = "";
+        endBackflipText = "";
         if (firstLaunch) {
             sound.playOhShit();
             timeScale = 0f;
@@ -183,6 +218,10 @@ final class Game {
             mlgRecord = mlgUnlocked ? Math.max(mlgRecord, save.mlgRecord()) : save.mlgRecord();
             mlgUnlocked = true;
         }
+        if (save.backflipUnlocked()) {
+            backflipRecord = backflipUnlocked ? Math.max(backflipRecord, save.backflipRecord()) : save.backflipRecord();
+            backflipUnlocked = true;
+        }
         distanceUnicycled = Math.max(distanceUnicycled, save.distance());
     }
 
@@ -196,7 +235,10 @@ final class Game {
         int pos = sound.specialMusicPositionMs();
         if (pos < 0) return;
         int prev = lastSongMs;
-        if (prev - pos > SONG_LOOP_JUMP_MS) prev = -1;   // the song looped
+        if (prev - pos > SONG_LOOP_JUMP_MS) {   // the song looped
+            prev = -1;
+            onSongEnded();
+        }
         lastSongMs = Math.max(prev, pos);
         for (int cue : MLG_VIDEO_AT_SONG_MS) {
             if (prev < cue && pos >= cue) {
@@ -206,12 +248,16 @@ final class Game {
         }
     }
 
-    /** GL thread: a clip played to its end; "1 MLG" -> "2 MLG" -> "3 MLG" -> "Snoop Dogg" (looping). */
-    void onVideoFinished(int clip) {
-        if (clip != videoClip) return;
-        if (clip == VideoBackground.MLG1) playVideo(VideoBackground.MLG2);
-        else if (clip == VideoBackground.MLG2) playVideo(VideoBackground.MLG3);
-        else if (clip == VideoBackground.MLG3) playVideo(VideoBackground.SNOOP);
+    private void onSongEnded() {
+        int i = random.nextInt(SONG_END_LINES.length - 1);
+        if (i >= lastSongLine && lastSongLine >= 0) i++;   // never the same line twice in a row
+        lastSongLine = i;
+        showBanner(SONG_END_LINES[i]);
+    }
+
+    private void showBanner(String text) {
+        bannerText = text;
+        bannerUntil = android.os.SystemClock.uptimeMillis() + BANNER_MS;
     }
 
     void onKey(int dir, boolean down) {
@@ -260,7 +306,10 @@ final class Game {
         distanceLast = currentScore;
         if (currentScore >= maxScore) maxScore = currentScore;
         if (currentScore <= minScore) minScore = currentScore;
-        boolean mlgRun = minScore <= SPECIAL_MUSIC_AT;
+        updateMode();
+        boolean mlgRun = mode != MODE_NORMAL;
+        videoHint = mlgRun ? VideoBackground.MLG1
+                : nextNormalVideo < NORMAL_VIDEO_AT.length ? VideoBackground.NORMAL : VideoBackground.NONE;
         if (!mlgRun && nextNormalVideo < NORMAL_VIDEO_AT.length
                 && currentScore > NORMAL_VIDEO_AT[nextNormalVideo]) {
             while (nextNormalVideo < NORMAL_VIDEO_AT.length && currentScore > NORMAL_VIDEO_AT[nextNormalVideo]) {
@@ -294,6 +343,19 @@ final class Game {
         if (phys.poleCenterY() <= DIE_HEIGHT) die();
     }
 
+    /** Normal -> MLG at -10 m; Backflip past -30 m; back past 0 m it is MLG for good. */
+    private void updateMode() {
+        if (mode == MODE_NORMAL && minScore <= SPECIAL_MUSIC_AT) mode = MODE_MLG;
+        if (mode == MODE_MLG && !backflipLeft && currentScore <= BACKFLIP_AT) {
+            mode = MODE_BACKFLIP;
+            showBanner("BACKFLIP MODE\nACTIVATED!!1!");
+        } else if (mode == MODE_BACKFLIP && currentScore > 0f) {
+            mode = MODE_MLG;
+            backflipLeft = true;
+            showBanner("MLG MODE\nACTIVATED!!1!");
+        }
+    }
+
     /** 10, 20, 30, 100, 200, 300, 1000, 2000, 3000, ... (the original played it every 10 m). */
     static boolean isOhShitMark(int metres) {
         if (metres < 10) return false;
@@ -308,11 +370,15 @@ final class Game {
     private void die() {
         ded = true;
         panelVisible = true;
-        // A run is either normal or MLG, never both: a run that went back to -10 m
-        // only counts for the MLG record (scored forwards), every other run only
-        // for "ur record".
-        boolean mlgRun = minScore <= SPECIAL_MUSIC_AT;
-        if (mlgRun) {
+        // A run is only one of normal, MLG or Backflip: a run that went back to -10 m
+        // counts for the MLG record (scored forwards), one that is still past -30 m
+        // in Backflip mode for the Backflip record (scored backwards), every other
+        // run only for "ur record".
+        if (mode == MODE_BACKFLIP) {
+            if (!backflipUnlocked || -minScore > backflipRecord) backflipRecord = -minScore;
+            backflipUnlocked = true;
+            save.storeBackflip(backflipRecord);
+        } else if (mode == MODE_MLG) {
             if (!mlgUnlocked || maxScore > mlgRecord) mlgRecord = maxScore;
             mlgUnlocked = true;
             save.storeMlg(mlgRecord);
@@ -323,6 +389,7 @@ final class Game {
         save.store(recordScore, distanceUnicycled);
         endRecordText = "ur record: " + cropDistance(recordScore);
         if (mlgUnlocked) endMlgText = "MLG: " + cropDistance(mlgRecord);
+        if (backflipUnlocked) endBackflipText = "Backflip: " + cropDistance(backflipRecord);
         endScoreText = "Dat Run: " + cropDistance(currentScore);
         scoreVisible = false;
     }

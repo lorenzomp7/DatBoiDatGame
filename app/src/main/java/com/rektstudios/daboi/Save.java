@@ -42,6 +42,20 @@ final class Save {
         prefs.edit().putBoolean("MlgUnlocked", true).putFloat("MlgRange", mlgRecord).apply();
     }
 
+    /** Not in the original: the Backflip record, unlocked by going past -30 m. */
+    boolean backflipUnlocked() {
+        return prefs.getBoolean("BackflipUnlocked", false);
+    }
+
+    /** Farthest backwards distance among the runs that ended in Backflip mode. */
+    float backflipRecord() {
+        return prefs.getFloat("BackflipRange", 0f);
+    }
+
+    void storeBackflip(float backflipRecord) {
+        prefs.edit().putBoolean("BackflipUnlocked", true).putFloat("BackflipRange", backflipRecord).apply();
+    }
+
     /** Progress file for "export progress" (survives reinstalls and phone changes). */
     String exportJson() {
         try {
@@ -52,6 +66,8 @@ final class Save {
                     .put("distance", (double) prefs.getFloat("Distance", 0f))
                     .put("mlg_unlocked", mlgUnlocked())
                     .put("mlg_record", (double) mlgRecord())
+                    .put("backflip_unlocked", backflipUnlocked())
+                    .put("backflip_record", (double) backflipRecord())
                     .toString(2);
         } catch (JSONException e) {
             throw new IllegalStateException(e);
@@ -71,6 +87,10 @@ final class Save {
         if (o.optBoolean("mlg_unlocked", false)) {
             float mlg = (float) o.optDouble("mlg_record", 0);
             storeMlg(mlgUnlocked() ? Math.max(mlgRecord(), mlg) : mlg);
+        }
+        if (o.optBoolean("backflip_unlocked", false)) {
+            float backflip = (float) o.optDouble("backflip_record", 0);
+            storeBackflip(backflipUnlocked() ? Math.max(backflipRecord(), backflip) : backflip);
         }
         return record;
     }

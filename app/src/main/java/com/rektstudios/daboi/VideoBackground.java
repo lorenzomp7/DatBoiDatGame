@@ -13,11 +13,15 @@ import android.view.Surface;
 import java.io.IOException;
 
 /**
- * The clips that play once behind dat boi: "1 MLG" 48 s into MLG mode followed by
- * "2 MLG" and "3 MLG", then "Snoop Dogg" on repeat; and the normal-mode clip at
- * 1000/2000/3000/10000/20000/30000 m.
+ * The clips that play behind dat boi: "1 MLG" -> "2 MLG" -> "3 MLG" -> "Snoop Dogg"
+ * on repeat in MLG mode, and the normal-mode clip at 1000/2000/3000/10000/20000/30000 m.
  * MediaPlayer decodes into a SurfaceTexture (an external OES texture); the green is
  * keyed out in the shader so the sky stays visible behind the clip.
+ *
+ * Two players take turns: while one clip plays, the clip that comes next is already
+ * prepared in the other one and starts the moment it is needed, and the last frame of
+ * the old clip stays on screen until the new one has its first frame, so there is
+ * never a gap between clips.
  *
  * Threads: the GL thread requests clips and latches frames; every MediaPlayer call
  * runs on {@link MediaThread}, so preparing a clip never stalls the game.
@@ -29,28 +33,46 @@ final class VideoBackground {
     private static final String[] ASSETS = {null, "mlg1.mp4", "normal1000.mp4", "mlg2.mp4", "mlg3.mp4", "snoop.mp4"};
     /** Green screen clips get their green keyed out; "2 MLG" has a full background. */
     private static final boolean[] KEYED = {false, true, true, false, true, true};
-    /** "Snoop Dogg" repeats until restart; every other clip plays once. */
+    /** "Snoop Dogg" repeats until it is replaced; every other clip plays once. */
     private static final boolean[] LOOP = {false, false, false, false, false, true};
+    /** The clip that follows each one as soon as it ends. */
+    private static final int[] AUTO_NEXT = {NONE, MLG2, NONE, MLG3, SNOOP, NONE};
+    /** The clip to keep ready while each one plays (NONE: the game's hint). "Snoop Dogg" is cut by "1 MLG". */
+    private static final int[] PRELOAD_AFTER = {NONE, MLG2, NONE, MLG3, SNOOP, MLG1};
 
     private final Context context;
     private final Handler media = MediaThread.get();
 
-    // GL thread
-    private SurfaceTexture surfaceTexture;
-    private int tex;
-    private int current = NONE, currentSeq;
-    private boolean hasFrame, lastMute;
-    private final float[] texMatrix = new float[16];
+    private static final class Slot {
+        // GL thread
+        SurfaceTexture surfaceTexture;
+        int tex;
+        final float[] texMatrix = new float[16];
+        volatile boolean frameAvailable;
+        // media thread
+        MediaPlayer player;
+        Surface surface;
+        int clip = NONE;
+        boolean ready;     // prepared and not started yet
+    }
 
-    // shared: each request gets a token; the media thread reports back with it
-    private volatile int token;
-    private volatile int preparedToken = -1, finishedToken = -1;
-    private volatile boolean frameAvailable;
+    private final Slot[] slots = {new Slot(), new Slot()};
+
+    // GL thread
+    private int requestedClip, requestedSeq, lastHint = -1;
+    private boolean lastMute;
+    private int shown = -1, shownClip = NONE, shownGen = -1;
+    private boolean shownFinished;
+
+    /**
+     * Published by the media thread in one value so the GL thread sees a consistent
+     * snapshot: bits 0-3 clip, 4-5 slot + 1 (0: nothing), 6 finished, 8+ start counter.
+     */
+    private volatile int state;
 
     // media thread
-    private MediaPlayer player;
-    private Surface surface;
-    private boolean appPaused, muted, active;
+    private int active = -1, gen, hint = NONE;
+    private boolean appPaused, muted, activeFinished;
 
     VideoBackground(Context context) {
         this.context = context;
@@ -58,49 +80,65 @@ final class VideoBackground {
 
     /** GL thread, after (re)creating the GL context. */
     void onSurfaceCreated() {
-        int[] ids = new int[1];
-        GLES20.glGenTextures(1, ids, 0);
-        tex = ids[0];
-        GLES20.glBindTexture(GL_TEXTURE_EXTERNAL_OES, tex);
-        GLES20.glTexParameteri(GL_TEXTURE_EXTERNAL_OES, GLES20.GL_TEXTURE_MIN_FILTER, GLES20.GL_LINEAR);
-        GLES20.glTexParameteri(GL_TEXTURE_EXTERNAL_OES, GLES20.GL_TEXTURE_MAG_FILTER, GLES20.GL_LINEAR);
-        GLES20.glTexParameteri(GL_TEXTURE_EXTERNAL_OES, GLES20.GL_TEXTURE_WRAP_S, GLES20.GL_CLAMP_TO_EDGE);
-        GLES20.glTexParameteri(GL_TEXTURE_EXTERNAL_OES, GLES20.GL_TEXTURE_WRAP_T, GLES20.GL_CLAMP_TO_EDGE);
-        final SurfaceTexture old = surfaceTexture;
-        surfaceTexture = new SurfaceTexture(tex);
-        surfaceTexture.setOnFrameAvailableListener(new SurfaceTexture.OnFrameAvailableListener() {
-            @Override
-            public void onFrameAvailable(SurfaceTexture st) {
-                frameAvailable = true;
-            }
-        });
-        hasFrame = false;
-        final Surface s = new Surface(surfaceTexture);
-        media.post(new Runnable() {
-            @Override
-            public void run() {
-                Surface previous = surface;
-                surface = s;
-                if (player != null) player.setSurface(s);
-                if (previous != null) previous.release();
-                if (old != null) old.release();
-            }
-        });
-    }
-
-    /** GL thread, every frame: request clip changes and latch the newest frame. */
-    void update(int clip, int seq, final boolean mute) {
-        if (clip != current || seq != currentSeq) {
-            current = clip;
-            currentSeq = seq;
-            hasFrame = false;
-            final int t = ++token;
-            final String asset = clip == NONE ? null : ASSETS[clip];
-            final boolean loop = LOOP[clip];
+        int[] ids = new int[2];
+        GLES20.glGenTextures(2, ids, 0);
+        for (int i = 0; i < 2; i++) {
+            final Slot slot = slots[i];
+            slot.tex = ids[i];
+            GLES20.glBindTexture(GL_TEXTURE_EXTERNAL_OES, slot.tex);
+            GLES20.glTexParameteri(GL_TEXTURE_EXTERNAL_OES, GLES20.GL_TEXTURE_MIN_FILTER, GLES20.GL_LINEAR);
+            GLES20.glTexParameteri(GL_TEXTURE_EXTERNAL_OES, GLES20.GL_TEXTURE_MAG_FILTER, GLES20.GL_LINEAR);
+            GLES20.glTexParameteri(GL_TEXTURE_EXTERNAL_OES, GLES20.GL_TEXTURE_WRAP_S, GLES20.GL_CLAMP_TO_EDGE);
+            GLES20.glTexParameteri(GL_TEXTURE_EXTERNAL_OES, GLES20.GL_TEXTURE_WRAP_T, GLES20.GL_CLAMP_TO_EDGE);
+            final SurfaceTexture old = slot.surfaceTexture;
+            slot.surfaceTexture = new SurfaceTexture(slot.tex);
+            slot.surfaceTexture.setOnFrameAvailableListener(new SurfaceTexture.OnFrameAvailableListener() {
+                @Override
+                public void onFrameAvailable(SurfaceTexture st) {
+                    slot.frameAvailable = true;
+                }
+            });
+            final Surface s = new Surface(slot.surfaceTexture);
             media.post(new Runnable() {
                 @Override
                 public void run() {
-                    play(asset, loop, t);
+                    Surface previous = slot.surface;
+                    slot.surface = s;
+                    if (slot.player != null) slot.player.setSurface(s);
+                    if (previous != null) previous.release();
+                    if (old != null) old.release();
+                }
+            });
+        }
+        // the new textures are empty: wait for the next frame before showing anything
+        shown = -1;
+        shownGen = -1;
+    }
+
+    /**
+     * GL thread, every frame: request clip changes and latch the newest frame.
+     * {@code hint} is the clip the game may ask for next, kept prepared when nothing
+     * else has to be.
+     */
+    void update(int clip, int seq, final int hint, final boolean mute) {
+        if (clip != requestedClip || seq != requestedSeq) {
+            requestedClip = clip;
+            requestedSeq = seq;
+            final int c = clip;
+            media.post(new Runnable() {
+                @Override
+                public void run() {
+                    play(c);
+                }
+            });
+        }
+        if (hint != lastHint) {
+            lastHint = hint;
+            media.post(new Runnable() {
+                @Override
+                public void run() {
+                    VideoBackground.this.hint = hint;
+                    preloadSpare();
                 }
             });
         }
@@ -110,34 +148,45 @@ final class VideoBackground {
                 @Override
                 public void run() {
                     muted = mute;
-                    if (player != null) player.setVolume(mute ? 0f : 1f, mute ? 0f : 1f);
+                    for (Slot s : slots) {
+                        if (s.player != null) s.player.setVolume(mute ? 0f : 1f, mute ? 0f : 1f);
+                    }
                 }
             });
         }
-        if (frameAvailable && surfaceTexture != null) {
-            frameAvailable = false;
-            surfaceTexture.updateTexImage();
-            surfaceTexture.getTransformMatrix(texMatrix);
-            if (preparedToken == token) hasFrame = true;
+        int st = state;
+        int playing = ((st >> 4) & 3) - 1;
+        int g = st >>> 8;
+        if (playing < 0) {
+            shown = -1;
+            return;
         }
+        Slot s = slots[playing];
+        if (s.frameAvailable && s.surfaceTexture != null) {
+            s.frameAvailable = false;
+            s.surfaceTexture.updateTexImage();
+            s.surfaceTexture.getTransformMatrix(s.texMatrix);
+            if (g != shownGen) {
+                // the new clip has its first frame: switch to it (until now the old one stayed)
+                shown = playing;
+                shownGen = g;
+                shownClip = st & 15;
+            }
+        }
+        if (g == shownGen) shownFinished = (st & 64) != 0;
     }
 
     boolean visible() {
-        return current != NONE && hasFrame && finishedToken != token;
+        return shown >= 0 && !shownFinished;
     }
 
-    /** Whether the current clip is a green screen clip. */
+    /** Whether the clip on screen is a green screen clip. */
     boolean keyed() {
-        return KEYED[current];
-    }
-
-    /** The clip that just played to its end (until another one is requested), or NONE. */
-    int finishedClip() {
-        return current != NONE && finishedToken == token ? current : NONE;
+        return KEYED[shownClip];
     }
 
     int texture() {
-        return tex;
+        return slots[Math.max(shown, 0)].tex;
     }
 
     /** Texture target of {@link #texture()} (an external OES texture). */
@@ -146,47 +195,110 @@ final class VideoBackground {
     }
 
     float[] texMatrix() {
-        return texMatrix;
+        return slots[Math.max(shown, 0)].texMatrix;
     }
 
-    /** Media thread. */
-    private void play(String asset, boolean loop, final int t) {
-        if (t != token) return;   // a newer request is already queued
-        active = asset != null;
-        if (!active) {
-            if (player != null && player.isPlaying()) player.pause();
+    // ---------------------------------------------------------------- media thread
+    private void publish(int slot, int clip, boolean finished) {
+        state = (gen << 8) | (finished ? 64 : 0) | ((slot + 1) << 4) | clip;
+    }
+
+    private void play(int clip) {
+        if (clip == NONE) {
+            if (active >= 0) pause(slots[active]);
+            active = -1;
+            gen++;
+            publish(-1, NONE, false);
+            preloadSpare();
             return;
         }
-        try {
-            if (player == null) {
-                player = new MediaPlayer();
-            } else {
-                player.reset();
+        int s = -1;
+        for (int i = 0; i < 2; i++) {
+            if (slots[i].ready && slots[i].clip == clip) s = i;
+        }
+        if (s < 0) {
+            s = active >= 0 ? 1 - active : 0;
+            if (!load(slots[s], clip, s)) return;
+        }
+        if (active >= 0 && active != s) pause(slots[active]);
+        Slot slot = slots[s];
+        slot.ready = false;
+        slot.frameAvailable = false;   // anything queued so far is not the new clip
+        slot.player.setVolume(muted ? 0f : 1f, muted ? 0f : 1f);
+        if (!appPaused) slot.player.start();
+        active = s;
+        activeFinished = false;
+        gen++;
+        publish(s, clip, false);
+        // prepare the clip after this one in the other player, after anything queued
+        media.post(new Runnable() {
+            @Override
+            public void run() {
+                preloadSpare();
             }
-            player.setAudioAttributes(new AudioAttributes.Builder()
+        });
+    }
+
+    private void onCompletion(int s) {
+        if (s != active) return;
+        int next = AUTO_NEXT[slots[s].clip];
+        if (next != NONE) {
+            play(next);
+        } else {
+            activeFinished = true;
+            publish(s, slots[s].clip, true);
+            preloadSpare();
+        }
+    }
+
+    /** Keeps the clip that may be needed next prepared in the player that is not playing. */
+    private void preloadSpare() {
+        int spare = active >= 0 ? 1 - active : 0;
+        int want = active >= 0 && !activeFinished ? PRELOAD_AFTER[slots[active].clip] : NONE;
+        if (want == NONE) want = hint;
+        if (want == NONE) return;
+        for (Slot s : slots) {
+            if (s.ready && s.clip == want) return;
+        }
+        load(slots[spare], want, spare);
+    }
+
+    private boolean load(Slot slot, int clip, final int index) {
+        try {
+            if (slot.player == null) {
+                slot.player = new MediaPlayer();
+            } else {
+                slot.player.reset();
+            }
+            slot.ready = false;
+            slot.clip = NONE;
+            slot.player.setAudioAttributes(new AudioAttributes.Builder()
                     .setUsage(AudioAttributes.USAGE_GAME)
                     .setContentType(AudioAttributes.CONTENT_TYPE_MOVIE)
                     .build());
-            AssetFileDescriptor fd = context.getAssets().openFd(asset);
-            player.setDataSource(fd.getFileDescriptor(), fd.getStartOffset(), fd.getLength());
+            AssetFileDescriptor fd = context.getAssets().openFd(ASSETS[clip]);
+            slot.player.setDataSource(fd.getFileDescriptor(), fd.getStartOffset(), fd.getLength());
             fd.close();
-            player.setLooping(loop);
-            player.setOnCompletionListener(new MediaPlayer.OnCompletionListener() {
+            slot.player.setLooping(LOOP[clip]);
+            slot.player.setOnCompletionListener(new MediaPlayer.OnCompletionListener() {
                 @Override
                 public void onCompletion(MediaPlayer mp) {
-                    if (t == token) finishedToken = t;
+                    VideoBackground.this.onCompletion(index);
                 }
             });
-            player.setSurface(surface);
-            player.prepare();
-            if (t != token) return;
-            player.setVolume(muted ? 0f : 1f, muted ? 0f : 1f);
-            preparedToken = t;
-            if (!appPaused) player.start();
-        } catch (IOException e) {
-            Log.e(TAG, "cannot play " + asset, e);
-            active = false;
+            slot.player.setSurface(slot.surface);
+            slot.player.prepare();
+            slot.clip = clip;
+            slot.ready = true;
+            return true;
+        } catch (IOException | IllegalStateException e) {
+            Log.e(TAG, "cannot load " + ASSETS[clip], e);
+            return false;
         }
+    }
+
+    private static void pause(Slot slot) {
+        if (slot.player != null && slot.player.isPlaying()) slot.player.pause();
     }
 
     /** Main thread: activity paused / resumed. */
@@ -195,9 +307,10 @@ final class VideoBackground {
             @Override
             public void run() {
                 appPaused = paused;
-                if (player == null || !active || preparedToken != token || finishedToken == token) return;
-                if (paused && player.isPlaying()) player.pause();
-                else if (!paused && !player.isPlaying()) player.start();
+                if (active < 0 || activeFinished) return;
+                MediaPlayer p = slots[active].player;
+                if (paused && p.isPlaying()) p.pause();
+                else if (!paused && !p.isPlaying()) p.start();
             }
         });
     }
@@ -206,9 +319,13 @@ final class VideoBackground {
         media.post(new Runnable() {
             @Override
             public void run() {
-                active = false;
-                if (player != null) player.release();
-                player = null;
+                active = -1;
+                for (Slot s : slots) {
+                    if (s.player != null) s.player.release();
+                    s.player = null;
+                    s.ready = false;
+                    s.clip = NONE;
+                }
             }
         });
     }
