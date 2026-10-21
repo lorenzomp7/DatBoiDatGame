@@ -64,8 +64,9 @@ ACTIVATED!!1!"): il suo record è la distanza più lontana raggiunta all'indietr
 torni in avanti sopra -30 m la partita torna MLG ("MLG MODE ACTIVATED!!1!"), e così via
 ogni volta che passi la linea dei -30 m. Conta la modalità in cui muori: oltre -30 m il
 record Backflip, sopra -30 m il record MLG. Il record Backflip si sblocca la prima volta, compare come
-terza riga sotto "ur record" e "MLG" nella schermata di morte e passa da export/import dei progressi. Musica e video
-restano quelli della modalità MLG.
+terza riga sotto "ur record" e "MLG" nella schermata di morte e passa da export/import dei progressi. La musica resta quella della modalità MLG, ma i video MLG
+non ci sono: entrando in Backflip il video si ferma, e a 0:48 e 2:28 non parte nessun
+video. Tornando in MLG i video ripartono al punto successivo del brano (0:48 o 2:28).
 
 In modalità Backflip, ogni volta che il brano arriva a 0:48 tutto il gioco (scena, video e
 scritte) si specchia orizzontalmente, e ogni volta che arriva a 2:28 si specchia

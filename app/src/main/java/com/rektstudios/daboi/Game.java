@@ -260,10 +260,12 @@ final class Game {
         for (int i = 0; i < MLG_VIDEO_AT_SONG_MS.length; i++) {
             int cue = MLG_VIDEO_AT_SONG_MS[i];
             if (prev < cue && pos >= cue) {
-                playVideo(VideoBackground.MLG1);
+                // the MLG clips are for MLG mode only; Backflip mode mirrors the game instead
                 if (mode == MODE_BACKFLIP) {
                     if (i == 0) mirrorX = !mirrorX;
                     else mirrorY = !mirrorY;
+                } else {
+                    playVideo(VideoBackground.MLG1);
                 }
                 break;
             }
@@ -371,6 +373,7 @@ final class Game {
         if (mode == MODE_NORMAL && minScore <= SPECIAL_MUSIC_AT) mode = MODE_MLG;
         if (mode == MODE_MLG && currentScore < BACKFLIP_AT) {
             mode = MODE_BACKFLIP;
+            if (videoClip != VideoBackground.NONE) playVideo(VideoBackground.NONE);
             showBanner("BACKFLIP MODE\nACTIVATED!!1!");
         } else if (mode == MODE_BACKFLIP && currentScore > BACKFLIP_AT + BACKFLIP_SLACK) {
             mode = MODE_MLG;
