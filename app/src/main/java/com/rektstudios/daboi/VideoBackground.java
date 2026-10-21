@@ -11,6 +11,7 @@ import android.util.Log;
 import android.view.Surface;
 
 import java.io.IOException;
+import java.util.concurrent.atomic.AtomicInteger;
 
 /**
  * The clips that play behind dat boi: "1 MLG" -> "2 MLG" -> "3 MLG" -> "Snoop Dogg"
@@ -29,7 +30,7 @@ import java.io.IOException;
  * It starts first, and "1 MLG" starts as soon as it is really playing.
  *
  * Threads: the GL thread requests clips and latches frames; every MediaPlayer call
- * runs on {@link MediaThread}, so preparing a clip never stalls the game.
+ * runs on a media thread of its own, so preparing a clip never stalls the game.
  */
 final class VideoBackground {
     private static final String TAG = "DatBoi";
@@ -52,14 +53,20 @@ final class VideoBackground {
     private static final String CHAIN_AUDIO = "mlgchain.ogg";
 
     private final Context context;
-    private final Handler media = MediaThread.get();
+    /** Its own thread, apart from the music: a stuck video player can never hold up the songs. */
+    private final Handler media = MediaThread.create("DatBoi-video");
 
     private static final class Slot {
         // GL thread
         SurfaceTexture surfaceTexture;
         int tex;
         final float[] texMatrix = new float[16];
-        volatile boolean frameAvailable;
+        /**
+         * Frames queued and not latched yet. Every one of them has to be taken: frames
+         * left in the queue use up the decoder's buffers until the clip freezes for good
+         * (and the stuck player then blocks the media thread for the following runs).
+         */
+        final AtomicInteger pending = new AtomicInteger();
         // media thread
         MediaPlayer player;
         Surface surface;
@@ -122,7 +129,7 @@ final class VideoBackground {
             slot.surfaceTexture.setOnFrameAvailableListener(new SurfaceTexture.OnFrameAvailableListener() {
                 @Override
                 public void onFrameAvailable(SurfaceTexture st) {
-                    slot.frameAvailable = true;
+                    slot.pending.incrementAndGet();
                 }
             });
             final Surface s = new Surface(slot.surfaceTexture);
@@ -191,9 +198,10 @@ final class VideoBackground {
             return;
         }
         Slot s = slots[playing];
-        if (s.frameAvailable && s.surfaceTexture != null) {
-            s.frameAvailable = false;
-            s.surfaceTexture.updateTexImage();
+        int n = s.pending.getAndSet(0);
+        if (n > 0 && s.surfaceTexture != null) {
+            // take every queued frame (each call latches the next one), keep the newest
+            for (int i = 0; i < Math.min(n, 16); i++) s.surfaceTexture.updateTexImage();
             s.surfaceTexture.getTransformMatrix(s.texMatrix);
             if (g != shownGen) {
                 // the new clip has its first frame: switch to it (until now the old one stayed)
@@ -329,7 +337,7 @@ final class VideoBackground {
         if (active >= 0 && active != s) pause(slots[active]);
         Slot slot = slots[s];
         slot.ready = false;
-        slot.frameAvailable = false;   // anything queued so far is not the new clip
+        slot.pending.set(0);   // anything queued so far is not the new clip
         slot.player.setVolume(muted ? 0f : 1f, muted ? 0f : 1f);
         if (!appPaused) slot.player.start();
         active = s;
@@ -488,6 +496,7 @@ final class VideoBackground {
                     s.ready = false;
                     s.clip = NONE;
                 }
+                media.getLooper().quitSafely();
             }
         });
     }

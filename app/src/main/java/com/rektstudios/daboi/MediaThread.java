@@ -15,11 +15,14 @@ final class MediaThread {
     }
 
     static synchronized Handler get() {
-        if (handler == null) {
-            HandlerThread t = new HandlerThread("DatBoi-media");
-            t.start();
-            handler = new Handler(t.getLooper());
-        }
+        if (handler == null) handler = create("DatBoi-media");
         return handler;
+    }
+
+    /** A separate media thread (the videos use their own). */
+    static Handler create(String name) {
+        HandlerThread t = new HandlerThread(name);
+        t.start();
+        return new Handler(t.getLooper());
     }
 }
