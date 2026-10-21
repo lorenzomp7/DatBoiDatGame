@@ -53,15 +53,18 @@ final class Game {
     private float distanceLast;
     private boolean pastTen, pastTwen, pastThir;
     /**
-     * Not in the original: the MLG green screen clip plays behind dat boi once
-     * the -10 m song reaches 0:48.
+     * Not in the original: the MLG clips ("1 MLG", "2 MLG", "3 MLG", then "Snoop Dogg"
+     * on repeat) start over each time the -10 m song reaches 0:48 and 2:28, on every
+     * repetition of the song.
      */
-    static final int VIDEO_AT_SONG_MS = 48000;
+    static final int[] MLG_VIDEO_AT_SONG_MS = {48000, 148000};
+    /** A backwards jump of the song position bigger than this is the song looping. */
+    private static final int SONG_LOOP_JUMP_MS = 5000;
     /** Not in the original: a normal run (never at -10 m) plays its own clip at these marks. */
     static final float[] NORMAL_VIDEO_AT = {1000f, 2000f, 3000f, 10000f, 20000f, 30000f};
     /** Clip to show (VideoBackground.NONE / MLG1 / NORMAL / MLG2), and a counter bumped on every request. */
     volatile int videoClip, videoSeq;
-    private boolean mlgVideoCued;
+    private int lastSongMs;
     private int nextNormalVideo;
     /** Not in the original: going back to -10 m switches the music. */
     static final float SPECIAL_MUSIC_AT = -10f;
@@ -115,7 +118,7 @@ final class Game {
         currentScore = maxScore = minScore = 0;
         pastTen = pastTwen = pastThir = false;
         videoClip = VideoBackground.NONE;
-        mlgVideoCued = false;
+        lastSongMs = -1;
         nextNormalVideo = 0;
         sound.setSpecialMusic(false);
         animTime = 0;
@@ -188,6 +191,21 @@ final class Game {
         videoSeq++;
     }
 
+    /** Restarts the MLG clips when the -10 m song crosses one of its cue points. */
+    private void cueMlgVideos() {
+        int pos = sound.specialMusicPositionMs();
+        if (pos < 0) return;
+        int prev = lastSongMs;
+        if (prev - pos > SONG_LOOP_JUMP_MS) prev = -1;   // the song looped
+        lastSongMs = Math.max(prev, pos);
+        for (int cue : MLG_VIDEO_AT_SONG_MS) {
+            if (prev < cue && pos >= cue) {
+                playVideo(VideoBackground.MLG1);
+                break;
+            }
+        }
+    }
+
     /** GL thread: a clip played to its end; "1 MLG" -> "2 MLG" -> "3 MLG" -> "Snoop Dogg" (looping). */
     void onVideoFinished(int clip) {
         if (clip != videoClip) return;
@@ -230,10 +248,7 @@ final class Game {
         if (animTime < 0) animTime += model.clipLength;
 
         while (phys.x >= amountAlready - 10) amountAlready += 10;
-        if (!mlgVideoCued && sound.specialMusicPositionMs() >= VIDEO_AT_SONG_MS) {
-            mlgVideoCued = true;
-            playVideo(VideoBackground.MLG1);
-        }
+        cueMlgVideos();
         moveAccessories(dt);
         updateTransforms();
         updateSmoke(dt);
