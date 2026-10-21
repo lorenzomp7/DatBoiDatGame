@@ -56,9 +56,10 @@ secondo una frase a caso in stile Dat Boi ("1 more time 4 da boiz", ...).
 ### Modalità Backflip
 
 Andando all'indietro oltre -30 m la partita diventa **Backflip** ("BACKFLIP MODE
-ACTIVATED!!1!"): il suo record è la distanza più lontana raggiunta all'indietro. Se poi
-torni in avanti oltre 0 m la partita diventa per sempre MLG ("MLG MODE ACTIVATED!!1!") e
-conta per il record MLG. Il record Backflip si sblocca la prima volta, compare sotto
+ACTIVATED!!1!"): il suo record è la distanza più lontana raggiunta all'indietro. Se
+torni in avanti sopra -30 m la partita torna MLG ("MLG MODE ACTIVATED!!1!"), e così via
+ogni volta che passi la linea dei -30 m. Conta la modalità in cui muori: oltre -30 m il
+record Backflip, sopra -30 m il record MLG. Il record Backflip si sblocca la prima volta, compare sotto
 "MLG" nella schermata di morte e passa da export/import dei progressi. Musica e video
 restano quelli della modalità MLG.
 

@@ -51,14 +51,15 @@ final class Game {
     float minScore, mlgRecord;
     boolean mlgUnlocked;
     /**
-     * Not in the original: going past -30 m turns the run into a Backflip run, scored
-     * backwards (its record is the farthest you went back); coming back past 0 m turns
-     * it into an MLG run for good.
+     * Not in the original: past -30 m an MLG run is in Backflip mode, scored backwards
+     * (its record is the farthest you went back); back on the near side of -30 m it is
+     * in MLG mode again. The mode you die in decides which record the run counts for.
      */
     static final float BACKFLIP_AT = -30f;
+    /** Half a metre of slack so wobbling right on the -30 m line does not flip the mode every frame. */
+    private static final float BACKFLIP_SLACK = 0.5f;
     static final int MODE_NORMAL = 0, MODE_MLG = 1, MODE_BACKFLIP = 2;
     int mode;
-    private boolean backflipLeft;
     float backflipRecord;
     boolean backflipUnlocked;
     private float distanceLast;
@@ -145,7 +146,6 @@ final class Game {
         backflipUnlocked = save.backflipUnlocked();
         backflipRecord = save.backflipRecord();
         mode = MODE_NORMAL;
-        backflipLeft = false;
         bannerUntil = 0;
         distanceUnicycled = save.distance();
         distanceLast = 0;
@@ -343,15 +343,14 @@ final class Game {
         if (phys.poleCenterY() <= DIE_HEIGHT) die();
     }
 
-    /** Normal -> MLG at -10 m; Backflip past -30 m; back past 0 m it is MLG for good. */
+    /** Normal -> MLG at -10 m; then Backflip past -30 m and MLG again on this side of it. */
     private void updateMode() {
         if (mode == MODE_NORMAL && minScore <= SPECIAL_MUSIC_AT) mode = MODE_MLG;
-        if (mode == MODE_MLG && !backflipLeft && currentScore <= BACKFLIP_AT) {
+        if (mode == MODE_MLG && currentScore < BACKFLIP_AT) {
             mode = MODE_BACKFLIP;
             showBanner("BACKFLIP MODE\nACTIVATED!!1!");
-        } else if (mode == MODE_BACKFLIP && currentScore > 0f) {
+        } else if (mode == MODE_BACKFLIP && currentScore > BACKFLIP_AT + BACKFLIP_SLACK) {
             mode = MODE_MLG;
-            backflipLeft = true;
             showBanner("MLG MODE\nACTIVATED!!1!");
         }
     }
@@ -371,7 +370,7 @@ final class Game {
         ded = true;
         panelVisible = true;
         // A run is only one of normal, MLG or Backflip: a run that went back to -10 m
-        // counts for the MLG record (scored forwards), one that is still past -30 m
+        // counts for the MLG record (scored forwards), one that ends past -30 m
         // in Backflip mode for the Backflip record (scored backwards), every other
         // run only for "ur record".
         if (mode == MODE_BACKFLIP) {
