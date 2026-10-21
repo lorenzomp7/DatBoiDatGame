@@ -113,6 +113,8 @@ final class Game {
     /** Not in the original: a line shown on screen for a few seconds (real time). */
     volatile String bannerText = "";
     volatile long bannerUntil;
+    /** Plain black text with no box, like the rest of the UI (the mode messages). */
+    volatile boolean bannerPlain;
     static final long BANNER_MS = 4000;
     /** Shown every time the -10 m song ends. */
     private static final String[] SONG_END_LINES = {
@@ -252,11 +254,12 @@ final class Game {
         int i = random.nextInt(SONG_END_LINES.length - 1);
         if (i >= lastSongLine && lastSongLine >= 0) i++;   // never the same line twice in a row
         lastSongLine = i;
-        showBanner(SONG_END_LINES[i]);
+        showBanner(SONG_END_LINES[i], false);
     }
 
-    private void showBanner(String text) {
+    private void showBanner(String text, boolean plain) {
         bannerText = text;
+        bannerPlain = plain;
         bannerUntil = android.os.SystemClock.uptimeMillis() + BANNER_MS;
     }
 
@@ -348,10 +351,10 @@ final class Game {
         if (mode == MODE_NORMAL && minScore <= SPECIAL_MUSIC_AT) mode = MODE_MLG;
         if (mode == MODE_MLG && currentScore < BACKFLIP_AT) {
             mode = MODE_BACKFLIP;
-            showBanner("BACKFLIP MODE\nACTIVATED!!1!");
+            showBanner("BACKFLIP MODE\nACTIVATED!!1!", true);
         } else if (mode == MODE_BACKFLIP && currentScore > BACKFLIP_AT + BACKFLIP_SLACK) {
             mode = MODE_MLG;
-            showBanner("MLG MODE\nACTIVATED!!1!");
+            showBanner("MLG MODE\nACTIVATED!!1!", true);
         }
     }
 

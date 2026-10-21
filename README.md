@@ -51,7 +51,7 @@ sequenza riparte a 0:49 e a 2:28 di ogni ripetizione del brano, fino al "restert
 Tra un video e l'altro non c'è mai uno stacco: due lettori si danno il cambio, il video
 successivo è già pronto mentre gira quello attuale, e l'ultimo fotogramma resta a schermo
 finché il nuovo non ha il primo. Ogni volta che il brano finisce compare per qualche
-secondo una frase a caso in stile Dat Boi ("1 more time 4 da boiz", ...).
+secondo una frase a caso in stile Dat Boi ("1 more time 4 da boiz", ...). Le scritte "BACKFLIP MODE ACTIVATED!!1!" e "MLG MODE ACTIVATED!!1!" sono nere e senza riquadro, come le altre scritte del gioco.
 
 ### Modalità Backflip
 
