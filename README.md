@@ -66,6 +66,14 @@ In una partita normale (che non è passata da -10 m) parte, dietro la rana, il v
 `assets/normal1000.mp4` (verde reso trasparente) a 1000, 2000, 3000, 10000, 20000 e
 30000 m, una volta per ciascun traguardo.
 
+### Audio e fluidità
+
+Il video della modalità normale ha lo stesso volume percepito della canzone base
+(-10,5 LUFS) e "I Keep Holding On" è un po' più alta (-8,0 LUFS). Musica e video vengono
+preparati su un thread separato, così quando partono il gioco e i comandi non si
+bloccano; se comunque un fotogramma arriva in ritardo, il gioco rallenta per un istante
+invece di fare un salto in avanti con i comandi fermi.
+
 ### Salvare i progressi
 
 Nel pannello `help` ci sono due pulsanti in più: **export ur progress** salva record e

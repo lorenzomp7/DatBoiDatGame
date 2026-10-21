@@ -22,6 +22,7 @@ final class Game {
     private static final float MOVE_SPEED = 4f / 0.009f;   // MoveTo: 4 m/s, in Dat Boi local units
     private static final float ANIM_SPEED = -0.65f;        // DatBoiController state speed * AnimSpeed
     private static final float DIE_HEIGHT = 0.4f;
+    private static final float MAX_GAME_STEP = 1f / 20f;
 
     final Model model;
     final Sound sound;
@@ -206,7 +207,9 @@ final class Game {
         while ((r = queue.poll()) != null) r.run();
 
         realDt = Math.min(realDt, 1f / 3f);   // Unity "Maximum Allowed Timestep"
-        float dt = realDt * timeScale;
+        // Unlike Unity, a slow frame (a hiccup) is not caught up in one big step with
+        // stale input: game time slows down instead, so a stutter can't cost the run.
+        float dt = Math.min(realDt, MAX_GAME_STEP) * timeScale;
         sound.update(realDt);
 
         // Input.GetAxis("Horizontal") keyboard smoothing (sensitivity 3, gravity 3, snap)
