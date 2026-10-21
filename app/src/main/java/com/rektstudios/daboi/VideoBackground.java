@@ -27,6 +27,8 @@ final class VideoBackground {
     private Surface surface;
     private int tex;
     private volatile boolean frameAvailable, hasFrame;
+    /** The clip plays once per run: true once it reached its end. */
+    private volatile boolean finished;
     private boolean appPaused, playing, muted;
     private final float[] texMatrix = new float[16];
 
@@ -79,7 +81,7 @@ final class VideoBackground {
     }
 
     boolean visible() {
-        return playing && hasFrame;
+        return playing && hasFrame && !finished;
     }
 
     int texture() {
@@ -98,6 +100,7 @@ final class VideoBackground {
     private void start() {
         playing = true;
         hasFrame = false;
+        finished = false;
         try {
             if (player == null) {
                 player = new MediaPlayer();
@@ -108,7 +111,13 @@ final class VideoBackground {
                 AssetFileDescriptor fd = context.getAssets().openFd(ASSET);
                 player.setDataSource(fd.getFileDescriptor(), fd.getStartOffset(), fd.getLength());
                 fd.close();
-                player.setLooping(true);
+                player.setLooping(false);
+                player.setOnCompletionListener(new MediaPlayer.OnCompletionListener() {
+                    @Override
+                    public void onCompletion(MediaPlayer mp) {
+                        finished = true;
+                    }
+                });
                 player.setSurface(surface);
                 player.prepare();
                 float v = muted ? 0f : 1f;
@@ -126,13 +135,14 @@ final class VideoBackground {
     private void stop() {
         playing = false;
         hasFrame = false;
+        finished = false;
         if (player != null && player.isPlaying()) player.pause();
     }
 
     /** Main thread: activity paused / resumed. */
     synchronized void onAppPause(boolean paused) {
         appPaused = paused;
-        if (player == null || !playing) return;
+        if (player == null || !playing || finished) return;
         if (paused && player.isPlaying()) player.pause();
         else if (!paused && !player.isPlaying()) player.start();
     }
