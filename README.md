@@ -41,7 +41,7 @@ reimplementato, la scena Unity (`level0`) letta oggetto per oggetto.
 Andando all'indietro fino a -10 m la musica di sottofondo diventa "I Keep Holding On"
 (`assets/minus10.ogg`, +10% di volume su tutto il brano), in loop fino al
 "restert?", poi torna la musica originale. Quando il brano arriva a 0:48 parte, dietro
-la rana e davanti al terreno, il video "Get Rekt" (`assets/getrekt.mp4`) con il verde reso trasparente
+la rana e davanti al terreno, il video MLG (`assets/mlg48.mp4`) con il verde reso trasparente
 (chroma key nello shader); resta in loop fino al "restert?".
 
 ### Record MLG

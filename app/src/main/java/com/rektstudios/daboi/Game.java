@@ -52,7 +52,7 @@ final class Game {
     private float distanceLast;
     private boolean pastTen, pastTwen, pastThir;
     /**
-     * Not in the original: the Get Rekt green screen clip plays behind dat boi once
+     * Not in the original: the MLG green screen clip plays behind dat boi once
      * the -10 m song reaches 0:48.
      */
     static final int VIDEO_AT_SONG_MS = 48000;

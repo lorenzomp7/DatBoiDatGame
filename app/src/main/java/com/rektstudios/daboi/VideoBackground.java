@@ -12,13 +12,14 @@ import android.view.Surface;
 import java.io.IOException;
 
 /**
- * The "Get Rekt" green screen clip that plays behind dat boi after 1000 m.
+ * The MLG green screen clip that plays behind dat boi 48 s into MLG mode.
  * MediaPlayer decodes into a SurfaceTexture (an external OES texture); the green is
  * keyed out in the shader so the sky stays visible behind the clip.
  */
 final class VideoBackground {
     private static final String TAG = "DatBoi";
     private static final int GL_TEXTURE_EXTERNAL_OES = 0x8D65;
+    private static final String ASSET = "mlg48.mp4";
 
     private final Context context;
     private MediaPlayer player;
@@ -104,7 +105,7 @@ final class VideoBackground {
                         .setUsage(AudioAttributes.USAGE_GAME)
                         .setContentType(AudioAttributes.CONTENT_TYPE_MOVIE)
                         .build());
-                AssetFileDescriptor fd = context.getAssets().openFd("getrekt.mp4");
+                AssetFileDescriptor fd = context.getAssets().openFd(ASSET);
                 player.setDataSource(fd.getFileDescriptor(), fd.getStartOffset(), fd.getLength());
                 fd.close();
                 player.setLooping(true);
@@ -117,7 +118,7 @@ final class VideoBackground {
             }
             if (!appPaused) player.start();
         } catch (IOException e) {
-            Log.e(TAG, "cannot play getrekt.mp4", e);
+            Log.e(TAG, "cannot play " + ASSET, e);
             release();
         }
     }
