@@ -23,6 +23,11 @@ import java.io.IOException;
  * the old clip stays on screen until the new one has its first frame, so there is
  * never a gap between clips.
  *
+ * The MLG clips and "Snoop Dogg" are silent videos: a clip with sound waits about
+ * half a second for the audio output with its first frame frozen on screen, so the
+ * sound of "1 MLG" + "2 MLG" + "3 MLG" is one separate track ({@link #CHAIN_AUDIO}).
+ * It starts first, and "1 MLG" starts as soon as it is really playing.
+ *
  * Threads: the GL thread requests clips and latches frames; every MediaPlayer call
  * runs on {@link MediaThread}, so preparing a clip never stalls the game.
  */
@@ -39,6 +44,8 @@ final class VideoBackground {
     private static final int[] AUTO_NEXT = {NONE, MLG2, NONE, MLG3, SNOOP, NONE};
     /** The clip to keep ready while each one plays (NONE: the game's hint). "Snoop Dogg" is cut by "1 MLG". */
     private static final int[] PRELOAD_AFTER = {NONE, MLG2, NONE, MLG3, SNOOP, MLG1};
+
+    private static final String CHAIN_AUDIO = "mlgchain.ogg";
 
     private final Context context;
     private final Handler media = MediaThread.get();
@@ -77,6 +84,12 @@ final class VideoBackground {
     private static final long WATCHDOG_MS = 500, STUCK_MS = 2000;
     private int watchedGen = -1, lastPos = -1;
     private long stuckFor;
+    // the MLG chain sound
+    private MediaPlayer chainAudio;
+    private boolean chainAudioUsed, chainActive;
+    private int chainToken;
+    private static final long CHAIN_WAIT_MS = 1000;
+
     private final Runnable watchdog = new Runnable() {
         @Override
         public void run() {
@@ -138,7 +151,8 @@ final class VideoBackground {
             media.post(new Runnable() {
                 @Override
                 public void run() {
-                    play(c);
+                    if (c == MLG1) startChain();
+                    else play(c);
                 }
             });
         }
@@ -161,6 +175,7 @@ final class VideoBackground {
                     for (Slot s : slots) {
                         if (s.player != null) s.player.setVolume(mute ? 0f : 1f, mute ? 0f : 1f);
                     }
+                    if (chainAudio != null) chainAudio.setVolume(mute ? 0f : 1f, mute ? 0f : 1f);
                 }
             });
         }
@@ -213,8 +228,77 @@ final class VideoBackground {
         state = (gen << 8) | (finished ? 64 : 0) | ((slot + 1) << 4) | clip;
     }
 
+    /** Starts the MLG chain sound, then "1 MLG" once the sound is really playing. */
+    private void startChain() {
+        final int t = ++chainToken;
+        stopChainAudio();
+        prepareChainAudio();
+        if (chainAudio == null) {
+            play(MLG1);
+            return;
+        }
+        chainAudioUsed = true;
+        chainActive = true;
+        chainAudio.setVolume(muted ? 0f : 1f, muted ? 0f : 1f);
+        if (!appPaused) chainAudio.start();
+        final long[] waited = {0};
+        media.post(new Runnable() {
+            @Override
+            public void run() {
+                if (t != chainToken) return;
+                int pos;
+                try {
+                    pos = chainAudio.getCurrentPosition();
+                } catch (IllegalStateException e) {
+                    pos = 1;
+                }
+                if (pos > 0 || waited[0] >= CHAIN_WAIT_MS) {
+                    play(MLG1);
+                } else {
+                    if (!appPaused) waited[0] += 5;
+                    media.postDelayed(this, 5);
+                }
+            }
+        });
+    }
+
+    /** Keeps a fresh, prepared player for the MLG chain sound. */
+    private void prepareChainAudio() {
+        if (chainAudio != null && !chainAudioUsed) return;
+        if (chainAudio != null) chainAudio.release();
+        chainAudio = null;
+        chainAudioUsed = false;
+        try {
+            MediaPlayer p = new MediaPlayer();
+            p.setAudioAttributes(new AudioAttributes.Builder()
+                    .setUsage(AudioAttributes.USAGE_GAME)
+                    .setContentType(AudioAttributes.CONTENT_TYPE_MOVIE)
+                    .build());
+            AssetFileDescriptor fd = context.getAssets().openFd(CHAIN_AUDIO);
+            p.setDataSource(fd.getFileDescriptor(), fd.getStartOffset(), fd.getLength());
+            fd.close();
+            p.setOnCompletionListener(new MediaPlayer.OnCompletionListener() {
+                @Override
+                public void onCompletion(MediaPlayer mp) {
+                    if (mp == chainAudio) chainActive = false;
+                }
+            });
+            p.prepare();
+            chainAudio = p;
+        } catch (IOException | IllegalStateException e) {
+            Log.e(TAG, "cannot load " + CHAIN_AUDIO, e);
+        }
+    }
+
+    private void stopChainAudio() {
+        chainActive = false;
+        if (chainAudio != null && chainAudio.isPlaying()) chainAudio.pause();
+    }
+
     private void play(int clip) {
         if (clip == NONE) {
+            chainToken++;
+            stopChainAudio();
             if (active >= 0) pause(slots[active]);
             active = -1;
             gen++;
@@ -309,6 +393,7 @@ final class VideoBackground {
         int spare = active >= 0 ? 1 - active : 0;
         int want = active >= 0 && !activeFinished ? PRELOAD_AFTER[slots[active].clip] : NONE;
         if (want == NONE) want = hint;
+        if (want == MLG1) prepareChainAudio();
         if (want == NONE) return;
         for (Slot s : slots) {
             if (s.ready && s.clip == want) return;
@@ -371,6 +456,10 @@ final class VideoBackground {
             @Override
             public void run() {
                 appPaused = paused;
+                if (chainAudio != null && chainActive) {
+                    if (paused && chainAudio.isPlaying()) chainAudio.pause();
+                    else if (!paused && !chainAudio.isPlaying()) chainAudio.start();
+                }
                 if (active < 0 || activeFinished) return;
                 MediaPlayer p = slots[active].player;
                 if (paused && p.isPlaying()) p.pause();
@@ -385,6 +474,10 @@ final class VideoBackground {
             public void run() {
                 active = -1;
                 media.removeCallbacks(watchdog);
+                chainToken++;
+                if (chainAudio != null) chainAudio.release();
+                chainAudio = null;
+                chainActive = false;
                 for (Slot s : slots) {
                     if (s.player != null) s.player.release();
                     s.player = null;

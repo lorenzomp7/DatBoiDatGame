@@ -69,7 +69,7 @@ final class Game {
     final float[] topSpeed = new float[3];
     /**
      * Not in the original: in Backflip mode the whole game (picture, clip and UI) is
-     * mirrored left-right each time the -10 m song reaches 0:49 and upside down each
+     * mirrored left-right each time the -10 m song reaches 0:48 and upside down each
      * time it reaches 2:28; each cue flips it again, so it adds up over the repeats.
      * Leaving Backflip mode or restarting puts it back the right way.
      */
@@ -79,10 +79,10 @@ final class Game {
     private boolean pastTen, pastTwen, pastThir;
     /**
      * Not in the original: the MLG clips ("1 MLG", "2 MLG", "3 MLG", then "Snoop Dogg"
-     * on repeat) start over each time the -10 m song reaches 0:49 and 2:28, on every
+     * on repeat) start over each time the -10 m song reaches 0:48 and 2:28, on every
      * repetition of the song.
      */
-    static final int[] MLG_VIDEO_AT_SONG_MS = {49000, 148000};
+    static final int[] MLG_VIDEO_AT_SONG_MS = {48000, 148000};
     /** A backwards jump of the song position bigger than this is the song looping. */
     private static final int SONG_LOOP_JUMP_MS = 5000;
     /** Not in the original: a normal run (never at -10 m) plays its own clip at these marks. */

@@ -40,17 +40,19 @@ reimplementato, la scena Unity (`level0`) letta oggetto per oggetto.
 
 Andando all'indietro fino a -10 m la musica di sottofondo diventa "I Keep Holding On"
 (`assets/minus10.ogg`, +10% di volume su tutto il brano), in loop fino al
-"restert?", poi torna la musica originale. Quando il brano arriva a 0:49 parte, dietro
+"restert?", poi torna la musica originale. Quando il brano arriva a 0:48 parte, dietro
 la rana e davanti al terreno, il video "1 MLG" (`assets/mlg1.mp4`) con il verde reso
 trasparente (chroma key nello shader); appena finisce parte il video "2 MLG"
 (`assets/mlg2.mp4`, a sfondo pieno, senza trasparenza) e poi "3 MLG" (`assets/mlg3.mp4`,
 verde trasparente). Dopo i tre video parte "Snoop Dogg" (`assets/snoop.mp4`, verde
 trasparente) a ripetizione. Quando il brano arriva a 2:28 "Snoop Dogg" si ferma e
 ripartono "1 MLG", "2 MLG" e "3 MLG", poi di nuovo "Snoop Dogg" a ripetizione; la stessa
-sequenza riparte a 0:49 e a 2:28 di ogni ripetizione del brano, fino al "restert?".
+sequenza riparte a 0:48 e a 2:28 di ogni ripetizione del brano, fino al "restert?".
 Tra un video e l'altro non c'è mai uno stacco: due lettori si danno il cambio, il video
 successivo è già pronto mentre gira quello attuale, e l'ultimo fotogramma resta a schermo
-finché il nuovo non ha il primo. Ogni volta che il brano finisce compare per qualche
+finché il nuovo non ha il primo. I video MLG e "Snoop Dogg" sono muti e il loro audio è un'unica
+traccia (`assets/mlgchain.ogg`) che parte un istante prima di "1 MLG": così nessun video
+resta fermo sul primo fotogramma ad aspettare l'audio. Ogni volta che il brano finisce compare per qualche
 secondo una frase a caso in stile Dat Boi ("1 more time 4 da boiz", ...). Questa frase e le scritte "BACKFLIP MODE ACTIVATED!!1!" e "MLG MODE ACTIVATED!!1!" sono nere e senza riquadro, come le altre scritte del gioco.
 
 ### Modalità Backflip
@@ -63,10 +65,10 @@ record Backflip, sopra -30 m il record MLG. Il record Backflip si sblocca la pri
 terza riga sotto "ur record" e "MLG" nella schermata di morte e passa da export/import dei progressi. Musica e video
 restano quelli della modalità MLG.
 
-In modalità Backflip, ogni volta che il brano arriva a 0:49 tutto il gioco (scena, video e
+In modalità Backflip, ogni volta che il brano arriva a 0:48 tutto il gioco (scena, video e
 scritte) si specchia orizzontalmente, e ogni volta che arriva a 2:28 si specchia
-verticalmente. Gli specchi si sommano: al primo giro del brano a 0:49 è specchiato, a
-2:28 anche capovolto; al secondo giro a 0:49 torna dritto in orizzontale e a 2:28 torna
+verticalmente. Gli specchi si sommano: al primo giro del brano a 0:48 è specchiato, a
+2:28 anche capovolto; al secondo giro a 0:48 torna dritto in orizzontale e a 2:28 torna
 dritto del tutto, e così via. I comandi seguono l'immagine: tocchi il lato dello schermo
 che vedi. Uscendo dal Backflip o con "restert?" torna tutto normale.
 
