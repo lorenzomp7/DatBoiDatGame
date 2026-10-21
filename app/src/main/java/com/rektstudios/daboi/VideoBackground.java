@@ -12,14 +12,16 @@ import android.view.Surface;
 import java.io.IOException;
 
 /**
- * The MLG green screen clip that plays behind dat boi 48 s into MLG mode.
+ * The green screen clips that play once behind dat boi: the MLG one 48 s into MLG
+ * mode, the normal one at 1000 m in a normal run.
  * MediaPlayer decodes into a SurfaceTexture (an external OES texture); the green is
  * keyed out in the shader so the sky stays visible behind the clip.
  */
 final class VideoBackground {
     private static final String TAG = "DatBoi";
     private static final int GL_TEXTURE_EXTERNAL_OES = 0x8D65;
-    private static final String ASSET = "mlg48.mp4";
+    static final int NONE = 0, MLG = 1, NORMAL = 2;
+    private static final String[] ASSETS = {null, "mlg48.mp4", "normal1000.mp4"};
 
     private final Context context;
     private MediaPlayer player;
@@ -30,6 +32,7 @@ final class VideoBackground {
     /** The clip plays once per run: true once it reached its end. */
     private volatile boolean finished;
     private boolean appPaused, playing, muted;
+    private int current = NONE;
     private final float[] texMatrix = new float[16];
 
     VideoBackground(Context context) {
@@ -61,11 +64,11 @@ final class VideoBackground {
     }
 
     /** GL thread, every frame: start/stop the clip and latch the newest frame. */
-    synchronized void update(boolean active, boolean mute) {
-        if (active && !playing) {
-            start();
-        } else if (!active && playing) {
-            stop();
+    synchronized void update(int clip, boolean mute) {
+        if (clip != current) {
+            if (playing) stop();
+            current = clip;
+            if (clip != NONE) start(ASSETS[clip]);
         }
         if (player != null && mute != muted) {
             muted = mute;
@@ -97,38 +100,38 @@ final class VideoBackground {
         return texMatrix;
     }
 
-    private void start() {
+    private void start(String asset) {
         playing = true;
         hasFrame = false;
         finished = false;
         try {
             if (player == null) {
                 player = new MediaPlayer();
-                player.setAudioAttributes(new AudioAttributes.Builder()
-                        .setUsage(AudioAttributes.USAGE_GAME)
-                        .setContentType(AudioAttributes.CONTENT_TYPE_MOVIE)
-                        .build());
-                AssetFileDescriptor fd = context.getAssets().openFd(ASSET);
-                player.setDataSource(fd.getFileDescriptor(), fd.getStartOffset(), fd.getLength());
-                fd.close();
-                player.setLooping(false);
-                player.setOnCompletionListener(new MediaPlayer.OnCompletionListener() {
-                    @Override
-                    public void onCompletion(MediaPlayer mp) {
-                        finished = true;
-                    }
-                });
-                player.setSurface(surface);
-                player.prepare();
-                float v = muted ? 0f : 1f;
-                player.setVolume(v, v);
             } else {
-                player.seekTo(0);
+                player.reset();
             }
+            player.setAudioAttributes(new AudioAttributes.Builder()
+                    .setUsage(AudioAttributes.USAGE_GAME)
+                    .setContentType(AudioAttributes.CONTENT_TYPE_MOVIE)
+                    .build());
+            AssetFileDescriptor fd = context.getAssets().openFd(asset);
+            player.setDataSource(fd.getFileDescriptor(), fd.getStartOffset(), fd.getLength());
+            fd.close();
+            player.setLooping(false);
+            player.setOnCompletionListener(new MediaPlayer.OnCompletionListener() {
+                @Override
+                public void onCompletion(MediaPlayer mp) {
+                    finished = true;
+                }
+            });
+            player.setSurface(surface);
+            player.prepare();
+            float v = muted ? 0f : 1f;
+            player.setVolume(v, v);
             if (!appPaused) player.start();
         } catch (IOException e) {
-            Log.e(TAG, "cannot play " + ASSET, e);
-            release();
+            Log.e(TAG, "cannot play " + asset, e);
+            playing = false;
         }
     }
 
@@ -149,6 +152,7 @@ final class VideoBackground {
 
     synchronized void release() {
         playing = false;
+        current = NONE;
         if (player != null) player.release();
         player = null;
     }

@@ -57,6 +57,11 @@ salvato e passa anche da export/import dei progressi.
 Il terreno bianco e la barra dei metri arrivano a 10 km (nell'originale finivano a 500 m
 e 1000 m).
 
+### Extra a 1000 m (modalità normale)
+
+In una partita normale (che non è passata da -10 m), a 1000 m parte una sola volta,
+dietro la rana, il video `assets/normal1000.mp4`, sempre con il verde reso trasparente.
+
 ### Salvare i progressi
 
 Nel pannello `help` ci sono due pulsanti in più: **export ur progress** salva record e

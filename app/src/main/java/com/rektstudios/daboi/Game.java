@@ -56,7 +56,11 @@ final class Game {
      * the -10 m song reaches 0:48.
      */
     static final int VIDEO_AT_SONG_MS = 48000;
-    volatile boolean videoActive;
+    /** Not in the original: a normal run (never at -10 m) plays its own clip at 1000 m. */
+    static final float NORMAL_VIDEO_AT = 1000f;
+    /** Clip to show (VideoBackground.NONE / MLG / NORMAL); each plays once per run. */
+    volatile int videoClip;
+    private boolean mlgVideoCued, normalVideoCued;
     /** Not in the original: going back to -10 m switches the music. */
     static final float SPECIAL_MUSIC_AT = -10f;
     private float ohShitCooldown;
@@ -108,7 +112,8 @@ final class Game {
         distanceLast = 0;
         currentScore = maxScore = minScore = 0;
         pastTen = pastTwen = pastThir = false;
-        videoActive = false;
+        videoClip = VideoBackground.NONE;
+        mlgVideoCued = normalVideoCued = false;
         sound.setSpecialMusic(false);
         animTime = 0;
         animSpeed = 0;
@@ -207,7 +212,10 @@ final class Game {
         if (animTime < 0) animTime += model.clipLength;
 
         while (phys.x >= amountAlready - 10) amountAlready += 10;
-        if (!videoActive && sound.specialMusicPositionMs() >= VIDEO_AT_SONG_MS) videoActive = true;
+        if (!mlgVideoCued && sound.specialMusicPositionMs() >= VIDEO_AT_SONG_MS) {
+            mlgVideoCued = true;
+            videoClip = VideoBackground.MLG;
+        }
         moveAccessories(dt);
         updateTransforms();
         updateSmoke(dt);
@@ -219,6 +227,13 @@ final class Game {
         distanceLast = currentScore;
         if (currentScore >= maxScore) maxScore = currentScore;
         if (currentScore <= minScore) minScore = currentScore;
+        boolean mlgRun = minScore <= SPECIAL_MUSIC_AT;
+        if (!normalVideoCued && !mlgRun && currentScore > NORMAL_VIDEO_AT) {
+            normalVideoCued = true;
+            videoClip = VideoBackground.NORMAL;
+        }
+        // the normal mode clip is not for MLG runs
+        if (mlgRun && videoClip == VideoBackground.NORMAL) videoClip = VideoBackground.NONE;
         if (currentScore > SHADES_AT && !pastTen) {
             pastTen = true;
             accessoryActive[1] = true;
