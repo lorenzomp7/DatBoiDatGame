@@ -62,6 +62,12 @@ final class Game {
     int mode;
     float backflipRecord;
     boolean backflipUnlocked;
+    /**
+     * Not in the original: the top speed (m/s, either direction) ever reached in the
+     * runs of each kind, indexed by mode; a run counts for the same kind as its record.
+     */
+    final float[] topSpeed = new float[3];
+    private float runTopSpeed;
     private float distanceLast;
     private boolean pastTen, pastTwen, pastThir;
     /**
@@ -150,6 +156,8 @@ final class Game {
         distanceUnicycled = save.distance();
         distanceLast = 0;
         currentScore = maxScore = minScore = 0;
+        runTopSpeed = 0;
+        for (int i = 0; i < 3; i++) topSpeed[i] = save.topSpeed(i);
         pastTen = pastTwen = pastThir = false;
         videoClip = VideoBackground.NONE;
         lastSongMs = -1;
@@ -222,6 +230,7 @@ final class Game {
             backflipRecord = backflipUnlocked ? Math.max(backflipRecord, save.backflipRecord()) : save.backflipRecord();
             backflipUnlocked = true;
         }
+        for (int i = 0; i < 3; i++) topSpeed[i] = Math.max(topSpeed[i], save.topSpeed(i));
         distanceUnicycled = Math.max(distanceUnicycled, save.distance());
     }
 
@@ -306,6 +315,7 @@ final class Game {
         distanceLast = currentScore;
         if (currentScore >= maxScore) maxScore = currentScore;
         if (currentScore <= minScore) minScore = currentScore;
+        runTopSpeed = Math.max(runTopSpeed, (float) Math.abs(phys.v));
         updateMode();
         boolean mlgRun = mode != MODE_NORMAL;
         videoHint = mlgRun ? VideoBackground.MLG1
@@ -384,13 +394,23 @@ final class Game {
         } else if (maxScore > recordScore) {
             recordScore = maxScore;
         }
+        if (runTopSpeed > topSpeed[mode]) {
+            topSpeed[mode] = runTopSpeed;
+            save.storeTopSpeed(mode, runTopSpeed);
+        }
         firstLaunch = false;
         save.store(recordScore, distanceUnicycled);
-        endRecordText = "ur record: " + cropDistance(recordScore);
-        if (mlgUnlocked) endMlgText = "MLG: " + cropDistance(mlgRecord);
-        if (backflipUnlocked) endBackflipText = "Backflip: " + cropDistance(backflipRecord);
+        endRecordText = "ur record: " + cropDistance(recordScore) + speedText(MODE_NORMAL);
+        if (mlgUnlocked) endMlgText = "MLG: " + cropDistance(mlgRecord) + speedText(MODE_MLG);
+        if (backflipUnlocked) endBackflipText = "Backflip: " + cropDistance(backflipRecord) + speedText(MODE_BACKFLIP);
         endScoreText = "Dat Run: " + cropDistance(currentScore);
         scoreVisible = false;
+    }
+
+    /** "  (12.3 km/h)", or nothing before the first run of that kind. */
+    private String speedText(int mode) {
+        float s = topSpeed[mode];
+        return s > 0 ? String.format(java.util.Locale.US, "  (%.1f km/h)", s * 3.6f) : "";
     }
 
     String shareText() {

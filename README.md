@@ -59,8 +59,8 @@ Andando all'indietro oltre -30 m la partita diventa **Backflip** ("BACKFLIP MODE
 ACTIVATED!!1!"): il suo record è la distanza più lontana raggiunta all'indietro. Se
 torni in avanti sopra -30 m la partita torna MLG ("MLG MODE ACTIVATED!!1!"), e così via
 ogni volta che passi la linea dei -30 m. Conta la modalità in cui muori: oltre -30 m il
-record Backflip, sopra -30 m il record MLG. Il record Backflip si sblocca la prima volta, compare sotto
-"MLG" nella schermata di morte e passa da export/import dei progressi. Musica e video
+record Backflip, sopra -30 m il record MLG. Il record Backflip si sblocca la prima volta, compare come
+terza riga sotto "ur record" e "MLG" nella schermata di morte e passa da export/import dei progressi. Musica e video
 restano quelli della modalità MLG.
 
 ### Record MLG
@@ -70,6 +70,12 @@ in avanti) ma conta solo le partite in cui sei arrivato a -10 m; quelle partite 
 contano per "ur record" (una partita è normale, MLG o Backflip, mai più di una). La prima di queste
 partite lo sblocca; da allora compare sotto "ur record" nella schermata di morte. Viene
 salvato e passa anche da export/import dei progressi.
+
+### Velocità massime
+
+Di fianco a ogni record (ur record, MLG, Backflip) c'è la velocità massima mai raggiunta
+in quel tipo di partita, in km/h (in avanti o all'indietro). Una partita conta per lo
+stesso tipo del suo record. Anche le velocità passano da export/import dei progressi.
 
 ### Terreno e righello
 

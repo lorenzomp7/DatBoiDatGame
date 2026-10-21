@@ -149,15 +149,17 @@ final class HudView extends View {
         endScore = new El(deathPanel, 1, 1, 1, 1, -249.8f, -79.4f, 466.4f, 119f, -0.9f)
                 .text("Dis run:", 53, ALIGN_MIDDLE_LEFT);
         deathEls.add(endScore);
-        endRecord = new El(deathPanel, 0, 0, 0, 0, 223.6f, 104f, 360.5f, 46f, 3.6f)
-                .text("Ur Rekord is:", 36, ALIGN_MIDDLE_LEFT);
+        // the three record lines (each with its top speed) sit high enough to stay on
+        // screen, under "restert?" and left of "share on dat facebuk?"
+        endRecord = new El(deathPanel, 0, 0, 0, 0, 222f, 136f, 400f, 38f, 3.6f)
+                .text("Ur Rekord is:", 26, ALIGN_MIDDLE_LEFT);
         deathEls.add(endRecord);
         // not in the original: the MLG and Backflip records, under "ur record"
-        endMlg = new El(deathPanel, 0, 0, 0, 0, 223.6f, 68f, 360.5f, 46f, 3.6f)
-                .text("", 36, ALIGN_MIDDLE_LEFT);
+        endMlg = new El(deathPanel, 0, 0, 0, 0, 222f, 100f, 400f, 38f, 3.6f)
+                .text("", 26, ALIGN_MIDDLE_LEFT);
         deathEls.add(endMlg);
-        endBackflip = new El(deathPanel, 0, 0, 0, 0, 223.6f, 32f, 360.5f, 46f, 3.6f)
-                .text("", 36, ALIGN_MIDDLE_LEFT);
+        endBackflip = new El(deathPanel, 0, 0, 0, 0, 222f, 64f, 400f, 38f, 3.6f)
+                .text("", 26, ALIGN_MIDDLE_LEFT);
         deathEls.add(endBackflip);
 
         // not in the original: crooked black text for game messages

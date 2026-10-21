@@ -56,10 +56,22 @@ final class Save {
         prefs.edit().putBoolean("BackflipUnlocked", true).putFloat("BackflipRange", backflipRecord).apply();
     }
 
+    /** Top speed per kind of run (Game.MODE_NORMAL / MODE_MLG / MODE_BACKFLIP), m/s. */
+    private static final String[] SPEED_KEYS = {"RecordSpeed", "MlgSpeed", "BackflipSpeed"};
+    private static final String[] SPEED_JSON = {"record_speed", "mlg_speed", "backflip_speed"};
+
+    float topSpeed(int mode) {
+        return prefs.getFloat(SPEED_KEYS[mode], 0f);
+    }
+
+    void storeTopSpeed(int mode, float speed) {
+        prefs.edit().putFloat(SPEED_KEYS[mode], speed).apply();
+    }
+
     /** Progress file for "export progress" (survives reinstalls and phone changes). */
     String exportJson() {
         try {
-            return new JSONObject()
+            JSONObject o = new JSONObject()
                     .put("game", "datboi")
                     .put("version", 1)
                     .put("record", (double) record())
@@ -67,8 +79,9 @@ final class Save {
                     .put("mlg_unlocked", mlgUnlocked())
                     .put("mlg_record", (double) mlgRecord())
                     .put("backflip_unlocked", backflipUnlocked())
-                    .put("backflip_record", (double) backflipRecord())
-                    .toString(2);
+                    .put("backflip_record", (double) backflipRecord());
+            for (int i = 0; i < SPEED_KEYS.length; i++) o.put(SPEED_JSON[i], (double) topSpeed(i));
+            return o.toString(2);
         } catch (JSONException e) {
             throw new IllegalStateException(e);
         }
@@ -91,6 +104,10 @@ final class Save {
         if (o.optBoolean("backflip_unlocked", false)) {
             float backflip = (float) o.optDouble("backflip_record", 0);
             storeBackflip(backflipUnlocked() ? Math.max(backflipRecord(), backflip) : backflip);
+        }
+        for (int i = 0; i < SPEED_KEYS.length; i++) {
+            float v = (float) o.optDouble(SPEED_JSON[i], 0);
+            if (v > topSpeed(i)) storeTopSpeed(i, v);
         }
         return record;
     }
