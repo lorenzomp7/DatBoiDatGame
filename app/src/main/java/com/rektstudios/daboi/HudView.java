@@ -231,6 +231,10 @@ final class HudView extends View {
 
     @Override
     protected void onDraw(Canvas c) {
+        // Backflip mode mirroring; as a view transform the touches follow the picture
+        float sx = game.mirrorX ? -1f : 1f, sy = game.mirrorY ? -1f : 1f;
+        if (getScaleX() != sx) setScaleX(sx);
+        if (getScaleY() != sy) setScaleY(sy);
         float usableW = Math.max(1f, getWidth() - insetLeft - insetRight);
         float usableH = Math.max(1f, getHeight() - insetTop);
         // The original matched the 800 unit width, which was laid out for 16:9 screens.

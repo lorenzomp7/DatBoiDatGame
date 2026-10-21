@@ -62,6 +62,9 @@ final class GameRenderer implements GLSurfaceView.Renderer {
     private long cycledTime;
 
     private final float[] proj = new float[16], view = new float[16], vp = new float[16], invVp = new float[16];
+    /** Unmirrored projection; {@link #proj} adds the Backflip mode mirroring on top. */
+    private final float[] baseProj = new float[16];
+    private final float[] flip = new float[2];
     private final float[] model = new float[16], tmp = new float[16], tmp2 = new float[16];
     private final float[] normalMat = new float[9];
     private final float[] cam = new float[3];
@@ -124,7 +127,7 @@ final class GameRenderer implements GLSurfaceView.Renderer {
         width = Math.max(1, w);
         height = Math.max(1, h);
         GLES20.glViewport(0, 0, width, height);
-        Matrix.perspectiveM(proj, 0, 60f, (float) width / height, 0.01f, 100f);
+        Matrix.perspectiveM(baseProj, 0, 60f, (float) width / height, 0.01f, 100f);
     }
 
     // ------------------------------------------------------------------ frame
@@ -141,6 +144,14 @@ final class GameRenderer implements GLSurfaceView.Renderer {
         cam[2] = CAM_OFFSET[2];
         Matrix.setLookAtM(view, 0, cam[0], cam[1], cam[2],
                 cam[0] + CAM_FORWARD[0], cam[1] + CAM_FORWARD[1], cam[2] + CAM_FORWARD[2], 0f, 1f, 0f);
+        // Backflip mode mirrors the whole picture (the sky follows through invVp)
+        flip[0] = game.mirrorX ? -1f : 1f;
+        flip[1] = game.mirrorY ? -1f : 1f;
+        System.arraycopy(baseProj, 0, proj, 0, 16);
+        for (int i = 0; i < 4; i++) {
+            proj[i * 4] *= flip[0];
+            proj[i * 4 + 1] *= flip[1];
+        }
         Matrix.multiplyMM(vp, 0, proj, 0, view, 0);
         Matrix.invertM(invVp, 0, vp, 0);
 
@@ -186,6 +197,7 @@ final class GameRenderer implements GLSurfaceView.Renderer {
         GLES20.glUseProgram(videoProg);
         GLES20.glUniformMatrix4fv(loc(videoProg, "uTexM"), 1, false, video.texMatrix(), 0);
         GLES20.glUniform2fv(loc(videoProg, "uCrop"), 1, crop, 0);
+        GLES20.glUniform2fv(loc(videoProg, "uFlip"), 1, flip, 0);
         GLES20.glUniform1f(loc(videoProg, "uKey"), video.keyed() ? 1f : 0f);
         GLES20.glActiveTexture(GLES20.GL_TEXTURE0);
         GLES20.glBindTexture(video.external() ? 0x8D65 : GLES20.GL_TEXTURE_2D, video.texture());
@@ -674,12 +686,13 @@ final class GameRenderer implements GLSurfaceView.Renderer {
     private static final String VIDEO_VS =
             "uniform mat4 uTexM;\n"
             + "uniform vec2 uCrop;\n"
+            + "uniform vec2 uFlip;\n"
             + "attribute vec3 aPos;\n"
             + "varying vec2 vUV;\n"
             + "void main() {\n"
             + "  vec2 uv = 0.5 + (aPos.xy - 0.5) * uCrop;\n"
             + "  vUV = (uTexM * vec4(uv, 0.0, 1.0)).xy;\n"
-            + "  gl_Position = vec4(aPos.xy * 2.0 - 1.0, 0.999, 1.0);\n"
+            + "  gl_Position = vec4((aPos.xy * 2.0 - 1.0) * uFlip, 0.999, 1.0);\n"
             + "}\n";
 
     // chroma key (uKey = 1): the more green dominates red and blue, the more transparent

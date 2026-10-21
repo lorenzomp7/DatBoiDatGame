@@ -63,6 +63,13 @@ record Backflip, sopra -30 m il record MLG. Il record Backflip si sblocca la pri
 terza riga sotto "ur record" e "MLG" nella schermata di morte e passa da export/import dei progressi. Musica e video
 restano quelli della modalità MLG.
 
+In modalità Backflip, ogni volta che il brano arriva a 0:49 tutto il gioco (scena, video e
+scritte) si specchia orizzontalmente, e ogni volta che arriva a 2:28 si specchia
+verticalmente. Gli specchi si sommano: al primo giro del brano a 0:49 è specchiato, a
+2:28 anche capovolto; al secondo giro a 0:49 torna dritto in orizzontale e a 2:28 torna
+dritto del tutto, e così via. I comandi seguono l'immagine: tocchi il lato dello schermo
+che vedi. Uscendo dal Backflip o con "restert?" torna tutto normale.
+
 ### Record MLG
 
 Un secondo record, **MLG**, funziona come "ur record" (la distanza più lontana raggiunta

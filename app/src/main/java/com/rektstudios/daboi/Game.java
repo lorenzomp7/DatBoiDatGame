@@ -67,6 +67,13 @@ final class Game {
      * runs of each kind, indexed by mode; a run counts for the same kind as its record.
      */
     final float[] topSpeed = new float[3];
+    /**
+     * Not in the original: in Backflip mode the whole game (picture, clip and UI) is
+     * mirrored left-right each time the -10 m song reaches 0:49 and upside down each
+     * time it reaches 2:28; each cue flips it again, so it adds up over the repeats.
+     * Leaving Backflip mode or restarting puts it back the right way.
+     */
+    volatile boolean mirrorX, mirrorY;
     private float runTopSpeed;
     private float distanceLast;
     private boolean pastTen, pastTwen, pastThir;
@@ -157,6 +164,7 @@ final class Game {
         distanceLast = 0;
         currentScore = maxScore = minScore = 0;
         runTopSpeed = 0;
+        mirrorX = mirrorY = false;
         for (int i = 0; i < 3; i++) topSpeed[i] = save.topSpeed(i);
         pastTen = pastTwen = pastThir = false;
         videoClip = VideoBackground.NONE;
@@ -249,9 +257,14 @@ final class Game {
             onSongEnded();
         }
         lastSongMs = Math.max(prev, pos);
-        for (int cue : MLG_VIDEO_AT_SONG_MS) {
+        for (int i = 0; i < MLG_VIDEO_AT_SONG_MS.length; i++) {
+            int cue = MLG_VIDEO_AT_SONG_MS[i];
             if (prev < cue && pos >= cue) {
                 playVideo(VideoBackground.MLG1);
+                if (mode == MODE_BACKFLIP) {
+                    if (i == 0) mirrorX = !mirrorX;
+                    else mirrorY = !mirrorY;
+                }
                 break;
             }
         }
@@ -361,6 +374,7 @@ final class Game {
             showBanner("BACKFLIP MODE\nACTIVATED!!1!");
         } else if (mode == MODE_BACKFLIP && currentScore > BACKFLIP_AT + BACKFLIP_SLACK) {
             mode = MODE_MLG;
+            mirrorX = mirrorY = false;
             showBanner("MLG MODE\nACTIVATED!!1!");
         }
     }
