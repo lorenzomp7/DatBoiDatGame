@@ -55,7 +55,7 @@ salvato e passa anche da export/import dei progressi.
 
 ### Terreno e righello
 
-Il terreno bianco e la barra dei metri arrivano a 10 km (nell'originale finivano a 500 m
+Il terreno bianco e la barra dei metri arrivano a 30 km (nell'originale finivano a 500 m
 e 1000 m).
 
 ### Video della modalità normale

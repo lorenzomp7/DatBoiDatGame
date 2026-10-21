@@ -38,9 +38,9 @@ final class GameRenderer implements GLSurfaceView.Renderer {
     private static final float[] AMB_SKY = {0.29f, 0.31f, 0.36f};
     private static final float[] AMB_GROUND = {0.13f, 0.13f, 0.13f};
     private static final float[] FOG = {1f, 1f, 1f};
-    // the original ground (1000 m wide) and ruler (1000 m) are stretched to 10 km
-    private static final float GROUND_X = 10000f;
-    private static final float RULER_LENGTH = 10000f;
+    // the original ground (1000 m wide) and ruler (1000 m) are stretched to 30 km
+    private static final float GROUND_X = 30000f;
+    private static final float RULER_LENGTH = 30000f;
     private static final float VISIBLE_RANGE = 200f;   // camera far plane is 100 m
     private static final float TEXT_UNITS = 0.1f;     // TextMesh: world units per font pixel
     private static final float TEXT_SCALE = 0.019601386f;
@@ -215,9 +215,9 @@ final class GameRenderer implements GLSurfaceView.Renderer {
 
     private void drawGround(float wx) {
         beginLit(litProg);
-        // Ground and ruler reach 10 km, but only the stretch around the camera is
+        // Ground and ruler reach 30 km, but only the stretch around the camera is
         // drawn: kilometre-long triangles far outside the view jitter on mobile GPUs.
-        // ground: the original Unity Plane, stretched along the track to +-10 km
+        // ground: the original Unity Plane, stretched along the track to +-30 km
         float g0 = Math.max(-GROUND_X, wx - VISIBLE_RANGE), g1 = Math.min(GROUND_X, wx + VISIBLE_RANGE);
         if (g1 > g0) {
             Matrix.setIdentityM(model, 0);
@@ -229,7 +229,7 @@ final class GameRenderer implements GLSurfaceView.Renderer {
 
     private void drawRuler(float wx) {
         beginLit(litProg);
-        // wholeRuler: white bar along the first 10 km
+        // wholeRuler: white bar along the first 30 km
         float r0 = Math.max(0f, wx - VISIBLE_RANGE), r1 = Math.min(RULER_LENGTH, wx + VISIBLE_RANGE);
         if (r1 > r0) {
             Matrix.setIdentityM(model, 0);
