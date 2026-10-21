@@ -187,9 +187,11 @@ final class Game {
         videoSeq++;
     }
 
-    /** GL thread: a clip played to its end; "1 MLG" is followed by "2 MLG". */
+    /** GL thread: a clip played to its end; "1 MLG" is followed by "2 MLG", then "3 MLG". */
     void onVideoFinished(int clip) {
-        if (clip == VideoBackground.MLG1 && videoClip == VideoBackground.MLG1) playVideo(VideoBackground.MLG2);
+        if (clip != videoClip) return;
+        if (clip == VideoBackground.MLG1) playVideo(VideoBackground.MLG2);
+        else if (clip == VideoBackground.MLG2) playVideo(VideoBackground.MLG3);
     }
 
     void onKey(int dir, boolean down) {

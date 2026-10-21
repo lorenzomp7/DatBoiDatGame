@@ -43,7 +43,8 @@ Andando all'indietro fino a -10 m la musica di sottofondo diventa "I Keep Holdin
 "restert?", poi torna la musica originale. Quando il brano arriva a 0:48 parte, dietro
 la rana e davanti al terreno, il video "1 MLG" (`assets/mlg1.mp4`) con il verde reso
 trasparente (chroma key nello shader); appena finisce parte il video "2 MLG"
-(`assets/mlg2.mp4`, a sfondo pieno, senza trasparenza). Ognuno parte una sola volta per partita.
+(`assets/mlg2.mp4`, a sfondo pieno, senza trasparenza) e poi "3 MLG" (`assets/mlg3.mp4`,
+verde trasparente). Ognuno parte una sola volta per partita.
 
 ### Record MLG
 

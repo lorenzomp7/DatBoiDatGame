@@ -13,17 +13,17 @@ import java.io.IOException;
 
 /**
  * The clips that play once behind dat boi: "1 MLG" 48 s into MLG mode followed by
- * "2 MLG", and the normal-mode clip at 1000/2000/3000/10000/20000/30000 m.
+ * "2 MLG" and "3 MLG", and the normal-mode clip at 1000/2000/3000/10000/20000/30000 m.
  * MediaPlayer decodes into a SurfaceTexture (an external OES texture); the green is
  * keyed out in the shader so the sky stays visible behind the clip.
  */
 final class VideoBackground {
     private static final String TAG = "DatBoi";
     private static final int GL_TEXTURE_EXTERNAL_OES = 0x8D65;
-    static final int NONE = 0, MLG1 = 1, NORMAL = 2, MLG2 = 3;
-    private static final String[] ASSETS = {null, "mlg1.mp4", "normal1000.mp4", "mlg2.mp4"};
+    static final int NONE = 0, MLG1 = 1, NORMAL = 2, MLG2 = 3, MLG3 = 4;
+    private static final String[] ASSETS = {null, "mlg1.mp4", "normal1000.mp4", "mlg2.mp4", "mlg3.mp4"};
     /** Green screen clips get their green keyed out; "2 MLG" has a full background. */
-    private static final boolean[] KEYED = {false, true, true, false};
+    private static final boolean[] KEYED = {false, true, true, false, true};
 
     private final Context context;
     private MediaPlayer player;
