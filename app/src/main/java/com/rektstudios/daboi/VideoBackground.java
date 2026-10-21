@@ -73,6 +73,16 @@ final class VideoBackground {
     // media thread
     private int active = -1, gen, hint = NONE;
     private boolean appPaused, muted, activeFinished;
+    /** Watchdog: a clip whose position stops moving is skipped instead of freezing the chain. */
+    private static final long WATCHDOG_MS = 500, STUCK_MS = 2000;
+    private int watchedGen = -1, lastPos = -1;
+    private long stuckFor;
+    private final Runnable watchdog = new Runnable() {
+        @Override
+        public void run() {
+            checkStuck();
+        }
+    };
 
     VideoBackground(Context context) {
         this.context = context;
@@ -218,7 +228,15 @@ final class VideoBackground {
         }
         if (s < 0) {
             s = active >= 0 ? 1 - active : 0;
-            if (!load(slots[s], clip, s)) return;
+            if (!load(slots[s], clip, s)) {
+                // the clip cannot play: hide the old one rather than freezing on it
+                if (active >= 0) {
+                    pause(slots[active]);
+                    activeFinished = true;
+                    publish(active, slots[active].clip, true);
+                }
+                return;
+            }
         }
         if (active >= 0 && active != s) pause(slots[active]);
         Slot slot = slots[s];
@@ -230,6 +248,11 @@ final class VideoBackground {
         activeFinished = false;
         gen++;
         publish(s, clip, false);
+        watchedGen = gen;
+        lastPos = -1;
+        stuckFor = 0;
+        media.removeCallbacks(watchdog);
+        media.postDelayed(watchdog, WATCHDOG_MS);
         // prepare the clip after this one in the other player, after anything queued
         media.post(new Runnable() {
             @Override
@@ -251,6 +274,36 @@ final class VideoBackground {
         }
     }
 
+    private void checkStuck() {
+        if (active < 0 || activeFinished || watchedGen != gen) return;
+        Slot slot = slots[active];
+        if (!appPaused && slot.player != null) {
+            int pos;
+            try {
+                pos = slot.player.getCurrentPosition();
+            } catch (IllegalStateException e) {
+                pos = lastPos;
+            }
+            stuckFor = pos == lastPos ? stuckFor + WATCHDOG_MS : 0;
+            lastPos = pos;
+            if (stuckFor >= STUCK_MS) {
+                Log.w(TAG, ASSETS[slot.clip] + " stopped at " + pos + " ms, moving on");
+                stuckFor = 0;
+                if (LOOP[slot.clip]) {
+                    // a loop that stalls: start it over in a fresh player
+                    slot.ready = false;
+                    int clip = slot.clip;
+                    activeFinished = true;
+                    if (load(slot, clip, active)) play(clip);
+                    return;
+                }
+                onCompletion(active);
+                return;
+            }
+        }
+        media.postDelayed(watchdog, WATCHDOG_MS);
+    }
+
     /** Keeps the clip that may be needed next prepared in the player that is not playing. */
     private void preloadSpare() {
         int spare = active >= 0 ? 1 - active : 0;
@@ -265,13 +318,13 @@ final class VideoBackground {
 
     private boolean load(Slot slot, int clip, final int index) {
         try {
-            if (slot.player == null) {
-                slot.player = new MediaPlayer();
-            } else {
-                slot.player.reset();
-            }
+            // always a fresh player: reusing one that was cut off mid-clip (the looping
+            // "Snoop Dogg" at 2:28) could leave the next clip stuck on its first frames
+            if (slot.player != null) slot.player.release();
+            slot.player = null;
             slot.ready = false;
             slot.clip = NONE;
+            slot.player = new MediaPlayer();
             slot.player.setAudioAttributes(new AudioAttributes.Builder()
                     .setUsage(AudioAttributes.USAGE_GAME)
                     .setContentType(AudioAttributes.CONTENT_TYPE_MOVIE)
@@ -283,7 +336,18 @@ final class VideoBackground {
             slot.player.setOnCompletionListener(new MediaPlayer.OnCompletionListener() {
                 @Override
                 public void onCompletion(MediaPlayer mp) {
+                    if (mp == slots[index].player) VideoBackground.this.onCompletion(index);
+                }
+            });
+            slot.player.setOnErrorListener(new MediaPlayer.OnErrorListener() {
+                @Override
+                public boolean onError(MediaPlayer mp, int what, int extra) {
+                    Log.w(TAG, "video error " + what + "/" + extra);
+                    if (mp != slots[index].player) return true;
+                    slots[index].ready = false;
+                    // a broken clip ends early instead of freezing the chain
                     VideoBackground.this.onCompletion(index);
+                    return true;
                 }
             });
             slot.player.setSurface(slot.surface);
@@ -320,6 +384,7 @@ final class VideoBackground {
             @Override
             public void run() {
                 active = -1;
+                media.removeCallbacks(watchdog);
                 for (Slot s : slots) {
                     if (s.player != null) s.player.release();
                     s.player = null;
