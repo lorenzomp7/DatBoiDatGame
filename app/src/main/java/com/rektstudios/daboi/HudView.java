@@ -160,11 +160,10 @@ final class HudView extends View {
                 .text("", 36, ALIGN_MIDDLE_LEFT);
         deathEls.add(endBackflip);
 
-        // not in the original: a crooked white box with red text for game messages
+        // not in the original: crooked black text for game messages
         banner = new El(root, 0.5f, 1f, 0.5f, 1f, 0f, -92f, 520f, 92f, 0f);
-        banner.bg = BG_BUTTON;
         bannerText = new El(banner, 0, 0, 1, 1, 0, 0, -16f, -10f, 0).text("", 40, ALIGN_MIDDLE_CENTER).bestFit(10, 44);
-        bannerText.textColor = 0xffff0000;
+        bannerText.textColor = 0xff000000;
 
         // Canvas/Button: "Start da Gaem"
         startButton = new El(root, 0.5f, 0.5f, 0.5f, 0.5f, 0f, 4.3f, 224f, 54f, 0f);
@@ -268,7 +267,7 @@ final class HudView extends View {
         }
         long now = SystemClock.uptimeMillis();
         long left = game.bannerUntil - now;
-        if (left > 0) drawBanner(c, game.bannerText, game.bannerPlain, Game.BANNER_MS - left);
+        if (left > 0) drawBanner(c, game.bannerText, Game.BANNER_MS - left);
         // hitmarkers (destroyafter 0.78 s, real time)
         float hs = 156.49f * scale;
         for (int i = hitmarkers.size() - 1; i >= 0; i--) {
@@ -284,19 +283,16 @@ final class HudView extends View {
     }
 
     /** Pops in, wobbles like the rest of the crooked UI, then pops out. */
-    private void drawBanner(Canvas c, String text, boolean plain, long age) {
+    private void drawBanner(Canvas c, String text, long age) {
         float t = age / 1000f, total = Game.BANNER_MS / 1000f;
         float pop = Math.min(1f, t / 0.15f) * Math.min(1f, (total - t) / 0.15f);
         banner.rot = -4f + 3f * (float) Math.sin(t * 7f);
         bannerText.text = text;
-        bannerText.textColor = plain ? 0xff000000 : 0xffff0000;
         layout(banner);
         float cx = toPxX(banner.cx), cy = toPxY(banner.cy);
         float k = pop * (1f + 0.04f * (float) Math.sin(t * 13f));
         c.save();
         c.scale(k, k, cx, cy);
-        if (!plain) draw(c, banner);
-        // the text rotates with its box
         c.rotate(-banner.rot, cx, cy);
         draw(c, bannerText);
         c.restore();
