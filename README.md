@@ -41,8 +41,9 @@ reimplementato, la scena Unity (`level0`) letta oggetto per oggetto.
 Andando all'indietro fino a -10 m la musica di sottofondo diventa "I Keep Holding On"
 (`assets/minus10.ogg`, +10% di volume su tutto il brano), in loop fino al
 "restert?", poi torna la musica originale. Quando il brano arriva a 0:48 parte, dietro
-la rana e davanti al terreno, il video MLG (`assets/mlg48.mp4`) con il verde reso trasparente
-(chroma key nello shader); il video parte una sola volta per partita.
+la rana e davanti al terreno, il video "1 MLG" (`assets/mlg1.mp4`) con il verde reso
+trasparente (chroma key nello shader); appena finisce parte il video "2 MLG"
+(`assets/mlg2.mp4`, a sfondo pieno, senza trasparenza). Ognuno parte una sola volta per partita.
 
 ### Record MLG
 
@@ -57,10 +58,11 @@ salvato e passa anche da export/import dei progressi.
 Il terreno bianco e la barra dei metri arrivano a 10 km (nell'originale finivano a 500 m
 e 1000 m).
 
-### Extra a 1000 m (modalità normale)
+### Video della modalità normale
 
-In una partita normale (che non è passata da -10 m), a 1000 m parte una sola volta,
-dietro la rana, il video `assets/normal1000.mp4`, sempre con il verde reso trasparente.
+In una partita normale (che non è passata da -10 m) parte, dietro la rana, il video
+`assets/normal1000.mp4` (verde reso trasparente) a 1000, 2000, 3000, 10000, 20000 e
+30000 m, una volta per ciascun traguardo.
 
 ### Salvare i progressi
 

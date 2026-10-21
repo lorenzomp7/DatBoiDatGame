@@ -148,7 +148,9 @@ final class GameRenderer implements GLSurfaceView.Renderer {
         drawSky();
         drawGround(wx);
         // the green screen clip covers sky and ground, but stays behind the ruler and dat boi
-        video.update(game.videoClip, Game.muted);
+        video.update(game.videoClip, game.videoSeq, Game.muted);
+        int finished = video.finishedClip();
+        if (finished != VideoBackground.NONE) game.onVideoFinished(finished);
         if (video.visible()) drawVideo();
         drawRuler(wx);
         drawDatBoi();
@@ -186,6 +188,7 @@ final class GameRenderer implements GLSurfaceView.Renderer {
         GLES20.glUseProgram(videoProg);
         GLES20.glUniformMatrix4fv(loc(videoProg, "uTexM"), 1, false, video.texMatrix(), 0);
         GLES20.glUniform2fv(loc(videoProg, "uCrop"), 1, crop, 0);
+        GLES20.glUniform1f(loc(videoProg, "uKey"), video.keyed() ? 1f : 0f);
         GLES20.glActiveTexture(GLES20.GL_TEXTURE0);
         GLES20.glBindTexture(video.external() ? 0x8D65 : GLES20.GL_TEXTURE_2D, video.texture());
         GLES20.glUniform1i(loc(videoProg, "uTex"), 0);
@@ -681,18 +684,23 @@ final class GameRenderer implements GLSurfaceView.Renderer {
             + "  gl_Position = vec4(aPos.xy * 2.0 - 1.0, 0.999, 1.0);\n"
             + "}\n";
 
-    // chroma key: the more green dominates red and blue, the more transparent
+    // chroma key (uKey = 1): the more green dominates red and blue, the more transparent
     private static final String VIDEO_FS =
             "precision mediump float;\n"
             + "uniform SAMPLER uTex;\n"
+            + "uniform float uKey;\n"
             + "varying vec2 vUV;\n"
             + "void main() {\n"
             + "  vec4 c = texture2D(uTex, vUV);\n"
-            + "  float rb = max(c.r, c.b);\n"
-            + "  float a = 1.0 - smoothstep(0.12, 0.30, c.g - rb);\n"
-            + "  if (a < 0.02) discard;\n"
-            + "  c.g = min(c.g, rb + 0.08);\n"
-            + "  gl_FragColor = vec4(c.rgb, a);\n"
+            + "  if (uKey > 0.5) {\n"
+            + "    float rb = max(c.r, c.b);\n"
+            + "    c.a = 1.0 - smoothstep(0.12, 0.30, c.g - rb);\n"
+            + "    if (c.a < 0.02) discard;\n"
+            + "    c.g = min(c.g, rb + 0.08);\n"
+            + "  } else {\n"
+            + "    c.a = 1.0;\n"
+            + "  }\n"
+            + "  gl_FragColor = c;\n"
             + "}\n";
 
     // full screen quad from the shared unit quad, sky colour from the view ray

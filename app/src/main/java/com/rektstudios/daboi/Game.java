@@ -56,11 +56,12 @@ final class Game {
      * the -10 m song reaches 0:48.
      */
     static final int VIDEO_AT_SONG_MS = 48000;
-    /** Not in the original: a normal run (never at -10 m) plays its own clip at 1000 m. */
-    static final float NORMAL_VIDEO_AT = 1000f;
-    /** Clip to show (VideoBackground.NONE / MLG / NORMAL); each plays once per run. */
-    volatile int videoClip;
-    private boolean mlgVideoCued, normalVideoCued;
+    /** Not in the original: a normal run (never at -10 m) plays its own clip at these marks. */
+    static final float[] NORMAL_VIDEO_AT = {1000f, 2000f, 3000f, 10000f, 20000f, 30000f};
+    /** Clip to show (VideoBackground.NONE / MLG1 / NORMAL / MLG2), and a counter bumped on every request. */
+    volatile int videoClip, videoSeq;
+    private boolean mlgVideoCued;
+    private int nextNormalVideo;
     /** Not in the original: going back to -10 m switches the music. */
     static final float SPECIAL_MUSIC_AT = -10f;
     private float ohShitCooldown;
@@ -113,7 +114,8 @@ final class Game {
         currentScore = maxScore = minScore = 0;
         pastTen = pastTwen = pastThir = false;
         videoClip = VideoBackground.NONE;
-        mlgVideoCued = normalVideoCued = false;
+        mlgVideoCued = false;
+        nextNormalVideo = 0;
         sound.setSpecialMusic(false);
         animTime = 0;
         animSpeed = 0;
@@ -180,6 +182,16 @@ final class Game {
         distanceUnicycled = Math.max(distanceUnicycled, save.distance());
     }
 
+    private void playVideo(int clip) {
+        videoClip = clip;
+        videoSeq++;
+    }
+
+    /** GL thread: a clip played to its end; "1 MLG" is followed by "2 MLG". */
+    void onVideoFinished(int clip) {
+        if (clip == VideoBackground.MLG1 && videoClip == VideoBackground.MLG1) playVideo(VideoBackground.MLG2);
+    }
+
     void onKey(int dir, boolean down) {
         if (down) keyTarget = dir;
         else if (keyTarget == dir) keyTarget = 0;
@@ -214,7 +226,7 @@ final class Game {
         while (phys.x >= amountAlready - 10) amountAlready += 10;
         if (!mlgVideoCued && sound.specialMusicPositionMs() >= VIDEO_AT_SONG_MS) {
             mlgVideoCued = true;
-            videoClip = VideoBackground.MLG;
+            playVideo(VideoBackground.MLG1);
         }
         moveAccessories(dt);
         updateTransforms();
@@ -228,9 +240,12 @@ final class Game {
         if (currentScore >= maxScore) maxScore = currentScore;
         if (currentScore <= minScore) minScore = currentScore;
         boolean mlgRun = minScore <= SPECIAL_MUSIC_AT;
-        if (!normalVideoCued && !mlgRun && currentScore > NORMAL_VIDEO_AT) {
-            normalVideoCued = true;
-            videoClip = VideoBackground.NORMAL;
+        if (!mlgRun && nextNormalVideo < NORMAL_VIDEO_AT.length
+                && currentScore > NORMAL_VIDEO_AT[nextNormalVideo]) {
+            while (nextNormalVideo < NORMAL_VIDEO_AT.length && currentScore > NORMAL_VIDEO_AT[nextNormalVideo]) {
+                nextNormalVideo++;
+            }
+            playVideo(VideoBackground.NORMAL);
         }
         // the normal mode clip is not for MLG runs
         if (mlgRun && videoClip == VideoBackground.NORMAL) videoClip = VideoBackground.NONE;
