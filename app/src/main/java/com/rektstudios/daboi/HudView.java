@@ -258,10 +258,10 @@ final class HudView extends View {
 
     @Override
     protected void onDraw(Canvas c) {
-        // Backflip mode mirroring; as a view transform the touches follow the picture
-        float sx = game.mirrorX ? -1f : 1f, sy = game.mirrorY ? -1f : 1f;
-        if (getScaleX() != sx) setScaleX(sx);
-        if (getScaleY() != sy) setScaleY(sy);
+        // Backflip mode mirroring, drawn mirrored (a mirrored view transform made the
+        // whole HUD vanish on some phones); onTouchEvent mirrors the touches to match
+        c.save();
+        c.scale(game.mirrorX ? -1f : 1f, game.mirrorY ? -1f : 1f, getWidth() / 2f, getHeight() / 2f);
         float usableW = Math.max(1f, getWidth() - insetLeft - insetRight);
         float usableH = Math.max(1f, getHeight() - insetTop);
         // The original matched the 800 unit width, which was laid out for 16:9 screens.
@@ -317,6 +317,7 @@ final class HudView extends View {
             rect.set(h[0] - hs / 2, h[1] - hs / 2, h[0] + hs / 2, h[1] + hs / 2);
             c.drawBitmap(hitmarkerBmp, null, rect, bitmapPaint);
         }
+        c.restore();
         postInvalidateOnAnimation();
     }
 
@@ -450,7 +451,7 @@ final class HudView extends View {
             case MotionEvent.ACTION_DOWN:
             case MotionEvent.ACTION_POINTER_DOWN: {
                 int id = ev.getPointerId(idx);
-                float x = ev.getX(idx), y = ev.getY(idx);
+                float x = touchX(ev.getX(idx)), y = touchY(ev.getY(idx));
                 El b = buttonAt(x, y);
                 if (b != null) {
                     pressed.put(id, b);
@@ -464,7 +465,7 @@ final class HudView extends View {
                 for (int i = 0; i < ev.getPointerCount(); i++) {
                     int id = ev.getPointerId(i);
                     for (int[] d : dpad) {
-                        if (d[0] == id) d[1] = axisFor(ev.getX(i));
+                        if (d[0] == id) d[1] = axisFor(touchX(ev.getX(i)));
                     }
                 }
                 applyAxis();
@@ -480,7 +481,7 @@ final class HudView extends View {
                     break;
                 }
                 int id = ev.getPointerId(idx);
-                float x = ev.getX(idx), y = ev.getY(idx);
+                float x = touchX(ev.getX(idx)), y = touchY(ev.getY(idx));
                 El b = pressed.remove(id);
                 for (int i = dpad.size() - 1; i >= 0; i--) {
                     if (dpad.get(i)[0] == id) dpad.remove(i);
@@ -496,6 +497,15 @@ final class HudView extends View {
                 break;
         }
         return true;
+    }
+
+    /** Touch position in the (possibly mirrored) picture, so touches land where things are drawn. */
+    private float touchX(float x) {
+        return game.mirrorX ? getWidth() - x : x;
+    }
+
+    private float touchY(float y) {
+        return game.mirrorY ? getHeight() - y : y;
     }
 
     private int axisFor(float x) {
