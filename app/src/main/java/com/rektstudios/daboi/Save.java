@@ -57,8 +57,10 @@ final class Save {
     }
 
     /** Top speed per kind of run (Game.MODE_NORMAL / MODE_MLG / MODE_BACKFLIP), m/s. */
-    private static final String[] SPEED_KEYS = {"RecordSpeed", "MlgSpeed", "BackflipSpeed"};
-    private static final String[] SPEED_JSON = {"record_speed", "mlg_speed", "backflip_speed"};
+    // forwards for normal and MLG, backwards for Backflip (the first version counted
+    // either direction, so those values are left behind under the old names)
+    private static final String[] SPEED_KEYS = {"RecordSpeedFwd", "MlgSpeedFwd", "BackflipSpeedBack"};
+    private static final String[] SPEED_JSON = {"record_top_speed", "mlg_top_speed", "backflip_top_speed"};
 
     float topSpeed(int mode) {
         return prefs.getFloat(SPEED_KEYS[mode], 0f);

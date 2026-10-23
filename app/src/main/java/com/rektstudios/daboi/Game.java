@@ -63,8 +63,9 @@ final class Game {
     float backflipRecord;
     boolean backflipUnlocked;
     /**
-     * Not in the original: the top speed (m/s, either direction) ever reached in the
-     * runs of each kind, indexed by mode; a run counts for the same kind as its record.
+     * Not in the original: the top speed (m/s) ever reached in the runs of each kind,
+     * indexed by mode; a run counts for the same kind as its record. Like the records,
+     * normal and MLG runs are timed going forwards, Backflip runs going backwards.
      */
     final float[] topSpeed = new float[3];
     /**
@@ -74,7 +75,7 @@ final class Game {
      * Leaving Backflip mode or restarting puts it back the right way.
      */
     volatile boolean mirrorX, mirrorY;
-    private float runTopSpeed;
+    private float runTopForward, runTopBackward;
     private float distanceLast;
     private boolean pastTen, pastTwen, pastThir;
     /**
@@ -163,7 +164,7 @@ final class Game {
         distanceUnicycled = save.distance();
         distanceLast = 0;
         currentScore = maxScore = minScore = 0;
-        runTopSpeed = 0;
+        runTopForward = runTopBackward = 0;
         mirrorX = mirrorY = false;
         for (int i = 0; i < 3; i++) topSpeed[i] = save.topSpeed(i);
         pastTen = pastTwen = pastThir = false;
@@ -330,7 +331,8 @@ final class Game {
         distanceLast = currentScore;
         if (currentScore >= maxScore) maxScore = currentScore;
         if (currentScore <= minScore) minScore = currentScore;
-        runTopSpeed = Math.max(runTopSpeed, (float) Math.abs(phys.v));
+        runTopForward = Math.max(runTopForward, (float) phys.v);
+        runTopBackward = Math.max(runTopBackward, (float) -phys.v);
         updateMode();
         boolean mlgRun = mode != MODE_NORMAL;
         videoHint = mlgRun ? VideoBackground.MLG1
@@ -411,9 +413,10 @@ final class Game {
         } else if (maxScore > recordScore) {
             recordScore = maxScore;
         }
-        if (runTopSpeed > topSpeed[mode]) {
-            topSpeed[mode] = runTopSpeed;
-            save.storeTopSpeed(mode, runTopSpeed);
+        float runTop = mode == MODE_BACKFLIP ? runTopBackward : runTopForward;
+        if (runTop > topSpeed[mode]) {
+            topSpeed[mode] = runTop;
+            save.storeTopSpeed(mode, runTop);
         }
         firstLaunch = false;
         save.store(recordScore, distanceUnicycled);

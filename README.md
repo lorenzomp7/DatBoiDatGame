@@ -86,7 +86,8 @@ salvato e passa anche da export/import dei progressi.
 ### Velocità massime
 
 Di fianco a ogni record (ur record, MLG, Backflip) c'è la velocità massima mai raggiunta
-in quel tipo di partita, in km/h (in avanti o all'indietro). Una partita conta per lo
+in quel tipo di partita, in km/h: in avanti per "ur record" e MLG, all'indietro per
+Backflip. Una partita conta per lo
 stesso tipo del suo record. Anche le velocità passano da export/import dei progressi.
 
 ### Terreno e righello
