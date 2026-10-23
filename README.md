@@ -63,7 +63,7 @@ secondo una frase a caso in stile Dat Boi ("1 more time 4 da boiz", ...). Questa
 La canzone di -10 m continua fino al "restert?", ma non succede nient'altro: nessun nuovo
 video a 0:48 e 2:28, nessuno specchio, nessuna frase a fine canzone. In una partita MLG
 alla morte come sfondo resta solo "Snoop Dogg" (l'audio dei video MLG si ferma); in
-Backflip lo schermo resta specchiato com'era; in una partita normale non cambia niente.
+Backflip lo schermo resta specchiato com'era; in una partita normale il video dei 1000 m, se stava andando, si ferma insieme al suo audio.
 
 ### Modalità Backflip
 
@@ -134,6 +134,16 @@ reinstallando l'app si riparte da zero, e i progressi passano solo dal file espo
 - Sugli schermi più larghi di 16:9 (quasi tutti i telefoni moderni) la UI mantiene la
   disposizione 16:9 invece di sovrapporre gli elementi.
 - I salvataggi della vecchia app (record e distanza) non vengono importati.
+
+## Build admin (privata)
+
+`ADMIN=1 ./tools/build_apk.sh` produce `build/admin/DatBoi-admin.apk`: pacchetto
+`com.rektstudios.daboi.admin` (si installa accanto al gioco, con salvataggi suoi), nome
+"Dat Boi ADMIN". Serve a revisionare il gioco: dopo la morte tutto va avanti come se fossi
+vivo, e in alto ci sono i pulsanti per saltare nella canzone (>0:45, >2:25, >3:30), per
+portare dat boi a -11 m (MLG) o -31 m (Backflip), la rana invincibile e una riga con tempo
+della canzone, giro, modalità, video in corso e specchi. L'APK admin non va pubblicato in
+questo repository; quello normale (`Flavor.ADMIN = false`) non ha nessuna di queste funzioni.
 
 ## Struttura
 

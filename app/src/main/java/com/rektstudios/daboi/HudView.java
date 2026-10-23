@@ -85,6 +85,11 @@ final class HudView extends View {
 
     private static final int A_HELP = 0, A_START = 1, A_K = 2, A_RESTART = 3, A_MUTE = 4, A_SHARE = 5,
             A_EXPORT = 6, A_IMPORT = 7;
+    // admin build only
+    private static final int A_SEEK_048 = 8, A_SEEK_228 = 9, A_SEEK_END = 10, A_TO_MLG = 11, A_TO_BACKFLIP = 12,
+            A_INVINCIBLE = 13;
+    private final List<El> adminEls = new ArrayList<>();
+    private El adminInfo, invincibleText;
 
     private final Game game;
     private final Sound sound;
@@ -187,7 +192,29 @@ final class HudView extends View {
                 "FAQ\nControls?\nTouch left to lean more right, touch right lean more left.\n\n"
                         + "Why does the UI look so ugly?\nBecause DAT BOI doesn't need a nice UI.\n\n"
                         + "How can I turn on music again?\nRestart the game.\n", 14, ALIGN_MIDDLE_CENTER));
+        if (Flavor.ADMIN) addAdminTools();
         setFocusable(true);
+    }
+
+    /** Admin build: a row of review buttons and a status line at the top. */
+    private void addAdminTools() {
+        String[] labels = {">0:45", ">2:25", ">3:30", "MLG", "BACKFLIP", "INV off"};
+        int[] actions = {A_SEEK_048, A_SEEK_228, A_SEEK_END, A_TO_MLG, A_TO_BACKFLIP, A_INVINCIBLE};
+        for (int i = 0; i < labels.length; i++) {
+            El b = new El(root, 0.5f, 1, 0.5f, 1, -225f + 70f * i, -18f, 66f, 24f, 0f);
+            b.bg = BG_BUTTON;
+            b.action = actions[i];
+            adminEls.add(b);
+            El t = new El(b, 0, 0, 1, 1, 0, 0, 0, 0, 0).text(labels[i], 12, ALIGN_MIDDLE_CENTER).bestFit(6, 13);
+            t.textColor = 0xffff0000;
+            adminEls.add(t);
+            if (actions[i] == A_INVINCIBLE) invincibleText = t;
+        }
+        // between "Disable dank sounds" and the score, under the buttons
+        adminInfo = new El(root, 0.5f, 1, 0.5f, 1, 30f, -47f, 260f, 28f, 0f).text("", 12, ALIGN_MIDDLE_CENTER)
+                .bestFit(6, 12);
+        adminInfo.textColor = 0xffff0000;
+        adminEls.add(adminInfo);
     }
 
     private El button(List<El> list, El parent, float ax, float ay, float px, float py, float w, float h, float rot, int action) {
@@ -270,6 +297,11 @@ final class HudView extends View {
         if (game.faqVisible) {
             draw(c, faqPanel);
             for (El e : faqEls) draw(c, e);
+        }
+        if (Flavor.ADMIN) {
+            invincibleText.text = game.invincible ? "INV on" : "INV off";
+            adminInfo.text = game.adminInfo;
+            for (El e : adminEls) draw(c, e);
         }
         long now = SystemClock.uptimeMillis();
         long left = game.bannerUntil - now;
@@ -481,6 +513,7 @@ final class HudView extends View {
     }
 
     private El buttonAt(float x, float y) {
+        for (El e : adminEls) if (e.action >= 0 && contains(e, x, y)) return e;
         if (game.faqVisible) {
             for (El e : faqEls) if (e.action >= 0 && contains(e, x, y)) return e;
         }
@@ -559,6 +592,30 @@ final class HudView extends View {
                 break;
             case A_SHARE:
                 actions.share(game.shareText());
+                break;
+            case A_SEEK_048:
+            case A_SEEK_228:
+            case A_SEEK_END:
+                final int ms = b.action == A_SEEK_048 ? 45000 : b.action == A_SEEK_228 ? 145000 : 210000;
+                game.post(new Runnable() {
+                    @Override
+                    public void run() {
+                        game.adminSeek(ms);
+                    }
+                });
+                break;
+            case A_TO_MLG:
+            case A_TO_BACKFLIP:
+                final float metres = b.action == A_TO_MLG ? -11f : -31f;
+                game.post(new Runnable() {
+                    @Override
+                    public void run() {
+                        game.adminTeleport(metres);
+                    }
+                });
+                break;
+            case A_INVINCIBLE:
+                game.invincible = !game.invincible;
                 break;
             default:
                 break;

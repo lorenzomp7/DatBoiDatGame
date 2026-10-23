@@ -141,6 +141,16 @@ final class Sound {
         });
     }
 
+    /** Admin build: jumps the -10 m song to a position. */
+    void seekSpecialMusic(final int ms) {
+        media.post(new Runnable() {
+            @Override
+            public void run() {
+                if (specialOn && special != null) special.seekTo(ms);
+            }
+        });
+    }
+
     /** Playback position of the -10 m song, or -1 when it is not playing. */
     int specialMusicPositionMs() {
         MediaPlayer p = special;

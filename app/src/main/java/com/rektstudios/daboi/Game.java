@@ -94,6 +94,18 @@ final class Game {
      */
     volatile int videoClip, videoSeq, videoHint;
     private int lastSongMs;
+    /** Repeats of the -10 m song so far (1 = first time through). */
+    private int songLoop;
+
+    // admin build only (Flavor.ADMIN): review tools
+    /** The pole never brings dat boi down: he is stood back up instead. */
+    volatile boolean invincible;
+    /** The clip on screen, set by the renderer. */
+    volatile int playingClip;
+    /** One line with song time, repeat, mode and clip. */
+    volatile String adminInfo = "";
+    /** Song position the song was just made to jump to (ignored until it lands there). */
+    private int seekingTo = -1;
     private int nextNormalVideo;
     /** Not in the original: going back to -10 m switches the music. */
     static final float SPECIAL_MUSIC_AT = -10f;
@@ -170,6 +182,8 @@ final class Game {
         pastTen = pastTwen = pastThir = false;
         videoClip = VideoBackground.NONE;
         lastSongMs = -1;
+        songLoop = 1;
+        seekingTo = -1;
         nextNormalVideo = 0;
         sound.setSpecialMusic(false);
         animTime = 0;
@@ -256,13 +270,23 @@ final class Game {
     private void cueMlgVideos() {
         int pos = sound.specialMusicPositionMs();
         if (pos < 0) return;
+        if (seekingTo >= 0) {
+            // an admin jump: wait until the song is there, without firing anything on the way
+            if (Math.abs(pos - seekingTo) > 1500) return;
+            seekingTo = -1;
+            lastSongMs = pos;
+            return;
+        }
+        // the admin build lets everything go on after death, to review it
+        boolean frozen = ded && !Flavor.ADMIN;
         int prev = lastSongMs;
         if (prev - pos > SONG_LOOP_JUMP_MS) {   // the song looped
             prev = -1;
-            if (!ded) onSongEnded();
+            songLoop++;
+            if (!frozen) onSongEnded();
         }
         lastSongMs = Math.max(prev, pos);
-        if (ded) return;
+        if (frozen) return;
         for (int i = 0; i < MLG_VIDEO_AT_SONG_MS.length; i++) {
             int cue = MLG_VIDEO_AT_SONG_MS[i];
             if (prev < cue && pos >= cue) {
@@ -276,6 +300,35 @@ final class Game {
                 break;
             }
         }
+    }
+
+    // ------------------------------------------------------------ admin build
+    /** Jumps the -10 m song (only while it plays). */
+    void adminSeek(int ms) {
+        if (sound.specialMusicPositionMs() < 0) return;
+        seekingTo = ms;
+        sound.seekSpecialMusic(ms);
+    }
+
+    /** Puts dat boi upright at a distance (-11 m: MLG, -31 m: Backflip), standing still. */
+    void adminTeleport(float metres) {
+        if (ded) return;
+        double delta = metres - currentScore;
+        phys.x += delta;
+        phys.v = 0;
+        phys.wheelSpin = 0;
+        phys.theta = 0;
+        phys.omega = 0;
+        distanceLast += (float) delta;   // a jump is not distance cycled
+    }
+
+    private void updateAdminInfo() {
+        int pos = sound.specialMusicPositionMs();
+        String song = pos < 0 ? "canzone -10 m: no"
+                : String.format(java.util.Locale.US, "canzone %d:%04.1f giro %d", pos / 60000, (pos % 60000) / 1000f, songLoop);
+        String m = mode == MODE_BACKFLIP ? "Backflip" : mode == MODE_MLG ? "MLG" : "normale";
+        adminInfo = "ADMIN · " + song + "\n" + m + (ded ? " (morto)" : "") + " · "
+                + VideoBackground.clipName(playingClip) + (mirrorX ? " · specchio" : "") + (mirrorY ? " · capovolto" : "");
     }
 
     private void onSongEnded() {
@@ -325,6 +378,7 @@ final class Game {
 
         while (phys.x >= amountAlready - 10) amountAlready += 10;
         cueMlgVideos();
+        if (Flavor.ADMIN) updateAdminInfo();
         moveAccessories(dt);
         updateTransforms();
         updateSmoke(dt);
@@ -372,7 +426,14 @@ final class Game {
         }
         scoreText = cropDistance(currentScore);
         cycledText = "Ur boi cycled \n" + cropDistance(distanceUnicycled) + " in total";
-        if (phys.poleCenterY() <= DIE_HEIGHT) die();
+        if (phys.poleCenterY() <= DIE_HEIGHT) {
+            if (Flavor.ADMIN && invincible) {
+                phys.theta = 0;   // stood back up
+                phys.omega = 0;
+            } else {
+                die();
+            }
+        }
     }
 
     /** Normal -> MLG at -10 m; then Backflip past -30 m and MLG again on this side of it. */
@@ -404,8 +465,12 @@ final class Game {
         ded = true;
         panelVisible = true;
         // only "Snoop Dogg" behind a dead MLG run (its clip sound stops, the song goes
-        // on); a dead Backflip run keeps its mirroring as it is, a normal run is unchanged
-        if (mode == MODE_MLG) playVideo(VideoBackground.SNOOP);
+        // on); a dead normal run stops its clip; a dead Backflip run keeps its mirroring
+        // (the admin build lets everything go on, to review what comes later)
+        if (!Flavor.ADMIN) {
+            if (mode == MODE_MLG) playVideo(VideoBackground.SNOOP);
+            else if (mode == MODE_NORMAL && videoClip != VideoBackground.NONE) playVideo(VideoBackground.NONE);
+        }
         // A run is only one of normal, MLG or Backflip: a run that went back to -10 m
         // counts for the MLG record (scored forwards), one that ends past -30 m
         // in Backflip mode for the Backflip record (scored backwards), every other

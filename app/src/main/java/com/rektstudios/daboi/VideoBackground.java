@@ -216,6 +216,22 @@ final class VideoBackground {
         if (g == shownGen) shownFinished = (st & 64) != 0;
     }
 
+    /** The clip playing right now (the chain moves on by itself), for the admin build. */
+    int playingClip() {
+        return state & 15;
+    }
+
+    static String clipName(int clip) {
+        switch (clip) {
+            case MLG1: return "1 MLG";
+            case MLG2: return "2 MLG";
+            case MLG3: return "3 MLG";
+            case SNOOP: return "Snoop Dogg";
+            case NORMAL: return "normale 1000 m";
+            default: return "nessun video";
+        }
+    }
+
     boolean visible() {
         return shown != NONE && !shownFinished;
     }
