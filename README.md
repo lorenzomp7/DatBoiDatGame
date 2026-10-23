@@ -114,7 +114,8 @@ Nel pannello `help` ci sono due pulsanti in più: **export ur progress** salva r
 distanza totale in un file `datboi-progress.json` (dove vuoi: Download, Drive, ...), e
 **import ur progress** li ricarica. L'importazione tiene sempre il valore migliore tra
 quello attuale e quello del file, quindi non si perde niente. Utile per cambiare telefono
-o reinstallare l'app.
+o reinstallare l'app. Il backup automatico di Android è disattivato: disinstallando e
+reinstallando l'app si riparte da zero, e i progressi passano solo dal file esportato.
 
 ### Differenze rispetto all'originale
 
