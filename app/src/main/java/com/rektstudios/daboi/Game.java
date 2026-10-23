@@ -248,16 +248,21 @@ final class Game {
         videoSeq++;
     }
 
-    /** Restarts the MLG clips when the -10 m song crosses one of its cue points. */
+    /**
+     * Restarts the MLG clips when the -10 m song crosses one of its cue points.
+     * After death the song plays on but nothing else happens: the player must not
+     * get to see what comes later without reaching it.
+     */
     private void cueMlgVideos() {
         int pos = sound.specialMusicPositionMs();
         if (pos < 0) return;
         int prev = lastSongMs;
         if (prev - pos > SONG_LOOP_JUMP_MS) {   // the song looped
             prev = -1;
-            onSongEnded();
+            if (!ded) onSongEnded();
         }
         lastSongMs = Math.max(prev, pos);
+        if (ded) return;
         for (int i = 0; i < MLG_VIDEO_AT_SONG_MS.length; i++) {
             int cue = MLG_VIDEO_AT_SONG_MS[i];
             if (prev < cue && pos >= cue) {
@@ -398,6 +403,9 @@ final class Game {
     private void die() {
         ded = true;
         panelVisible = true;
+        // only "Snoop Dogg" behind a dead MLG run (its clip sound stops, the song goes
+        // on); a dead Backflip run keeps its mirroring as it is, a normal run is unchanged
+        if (mode == MODE_MLG) playVideo(VideoBackground.SNOOP);
         // A run is only one of normal, MLG or Backflip: a run that went back to -10 m
         // counts for the MLG record (scored forwards), one that ends past -30 m
         // in Backflip mode for the Backflip record (scored backwards), every other

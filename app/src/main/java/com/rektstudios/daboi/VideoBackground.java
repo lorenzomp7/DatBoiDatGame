@@ -169,8 +169,14 @@ final class VideoBackground {
             media.post(new Runnable() {
                 @Override
                 public void run() {
-                    if (c == MLG1) startChain();
-                    else play(c);
+                    if (c == MLG1) {
+                        startChain();
+                    } else {
+                        // anything else the game asks for ends the MLG chain and its sound
+                        chainToken++;
+                        stopChainAudio();
+                        play(c, false);
+                    }
                 }
             });
         }
@@ -294,7 +300,7 @@ final class VideoBackground {
         stopChainAudio();
         prepareChainAudio();
         if (chainAudio == null) {
-            play(MLG1);
+            play(MLG1, false);
             return;
         }
         chainAudioUsed = true;
@@ -313,7 +319,7 @@ final class VideoBackground {
                     pos = 1;
                 }
                 if (pos > 0 || waited[0] >= CHAIN_WAIT_MS) {
-                    play(MLG1);
+                    play(MLG1, false);
                 } else {
                     if (!appPaused) waited[0] += 5;
                     media.postDelayed(this, 5);
@@ -355,8 +361,10 @@ final class VideoBackground {
         if (chainAudio != null && chainAudio.isPlaying()) chainAudio.pause();
     }
 
-    private void play(int index) {
+    /** {@code restart}: start a looping clip over even if it is already playing. */
+    private void play(int index, boolean restart) {
         int old = active;
+        if (index == old && LOOP[index] && !activeFinished && !restart) return;   // already on
         if (index == NONE) {
             chainToken++;
             stopChainAudio();
@@ -410,7 +418,7 @@ final class VideoBackground {
         if (index != active || activeFinished) return;
         int next = AUTO_NEXT[index];
         if (next != NONE) {
-            play(next);
+            play(next, false);
         } else {
             activeFinished = true;
             publish(index, true);
@@ -433,7 +441,7 @@ final class VideoBackground {
                 Log.w(TAG, ASSETS[active] + " stopped at " + pos + " ms, moving on");
                 stuckFor = 0;
                 if (LOOP[active]) {
-                    play(active);   // a loop that stalls: start it over
+                    play(active, true);   // a loop that stalls: start it over
                     return;
                 }
                 onCompletion(active);

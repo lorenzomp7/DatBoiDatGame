@@ -58,6 +58,13 @@ resta fermo sul primo fotogramma ad aspettare l'audio. `snoop.mp4` contiene già
 Android si ferma mezzo secondo ogni volta che riparte da capo. Ogni volta che il brano finisce compare per qualche
 secondo una frase a caso in stile Dat Boi ("1 more time 4 da boiz", ...). Questa frase e le scritte "BACKFLIP MODE ACTIVATED!!1!" e "MLG MODE ACTIVATED!!1!" sono nere e senza riquadro, come le altre scritte del gioco.
 
+### Dopo la morte
+
+La canzone di -10 m continua fino al "restert?", ma non succede nient'altro: nessun nuovo
+video a 0:48 e 2:28, nessuno specchio, nessuna frase a fine canzone. In una partita MLG
+alla morte come sfondo resta solo "Snoop Dogg" (l'audio dei video MLG si ferma); in
+Backflip lo schermo resta specchiato com'era; in una partita normale non cambia niente.
+
 ### Modalità Backflip
 
 Andando all'indietro oltre -30 m la partita diventa **Backflip** ("BACKFLIP MODE
