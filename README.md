@@ -8,8 +8,13 @@ e non rispetta il requisito 64 bit di Google Play. Questa versione ricrea il gio
 app Android nativa in Java + OpenGL ES 2.0, **senza alcuna libreria nativa**: ART la
 esegue come processo a 64 bit su `arm64-v8a` / `x86_64` (e anche sui dispositivi a 32 bit).
 
-APK pronto all'installazione: [`dist/DatBoi-2.0-64bit.apk`](dist/DatBoi-2.0-64bit.apk)
-(minSdk 21 / Android 5.0, targetSdk 35).
+<p align="center">
+  <a href="dist/DatBoi-2.0-64bit.apk?raw=true">
+    <img alt="Scarica l'APK" src="https://img.shields.io/badge/Scarica%20l'APK-Android%2064%20bit-3DDC84?style=for-the-badge&logo=android&logoColor=white" height="60">
+  </a>
+</p>
+
+Tocca il pulsante per scaricare [`dist/DatBoi-2.0-64bit.apk`](dist/DatBoi-2.0-64bit.apk) (minSdk 21 / Android 5.0, targetSdk 35).
 
 ## Cosa è stato ricreato
 
