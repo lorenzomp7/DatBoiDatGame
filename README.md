@@ -9,7 +9,7 @@ app Android nativa in Java + OpenGL ES 2.0, **senza alcuna libreria nativa**: AR
 esegue come processo a 64 bit su `arm64-v8a` / `x86_64` (e anche sui dispositivi a 32 bit).
 
 <p align="center">
-  <a href="dist/DatBoi-2.0-64bit.apk?raw=true">
+  <a href="https://raw.githubusercontent.com/lorenzomp7/DatBoiDatGame/main/dist/DatBoi-2.0-64bit.apk">
     <img alt="Scarica l'APK" src="https://img.shields.io/badge/Scarica%20l'APK-Android%2064%20bit-3DDC84?style=for-the-badge&logo=android&logoColor=white" height="60">
   </a>
 </p>
