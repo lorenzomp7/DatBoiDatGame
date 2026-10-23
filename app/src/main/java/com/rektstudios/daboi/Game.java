@@ -277,16 +277,14 @@ final class Game {
             lastSongMs = pos;
             return;
         }
-        // the admin build lets everything go on after death, to review it
-        boolean frozen = ded && !Flavor.ADMIN;
         int prev = lastSongMs;
         if (prev - pos > SONG_LOOP_JUMP_MS) {   // the song looped
             prev = -1;
             songLoop++;
-            if (!frozen) onSongEnded();
+            if (!ded) onSongEnded();
         }
         lastSongMs = Math.max(prev, pos);
-        if (frozen) return;
+        if (ded) return;
         for (int i = 0; i < MLG_VIDEO_AT_SONG_MS.length; i++) {
             int cue = MLG_VIDEO_AT_SONG_MS[i];
             if (prev < cue && pos >= cue) {
@@ -466,11 +464,8 @@ final class Game {
         panelVisible = true;
         // only "Snoop Dogg" behind a dead MLG run (its clip sound stops, the song goes
         // on); a dead normal run stops its clip; a dead Backflip run keeps its mirroring
-        // (the admin build lets everything go on, to review what comes later)
-        if (!Flavor.ADMIN) {
-            if (mode == MODE_MLG) playVideo(VideoBackground.SNOOP);
-            else if (mode == MODE_NORMAL && videoClip != VideoBackground.NONE) playVideo(VideoBackground.NONE);
-        }
+        if (mode == MODE_MLG) playVideo(VideoBackground.SNOOP);
+        else if (mode == MODE_NORMAL && videoClip != VideoBackground.NONE) playVideo(VideoBackground.NONE);
         // A run is only one of normal, MLG or Backflip: a run that went back to -10 m
         // counts for the MLG record (scored forwards), one that ends past -30 m
         // in Backflip mode for the Backflip record (scored backwards), every other

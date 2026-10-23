@@ -144,8 +144,8 @@ reinstallando l'app si riparte da zero, e i progressi passano solo dal file espo
 
 `ADMIN=1 ./tools/build_apk.sh` produce `build/admin/DatBoi-admin.apk`: pacchetto
 `com.rektstudios.daboi.admin` (si installa accanto al gioco, con salvataggi suoi), nome
-"Dat Boi ADMIN". Serve a revisionare il gioco: dopo la morte tutto va avanti come se fossi
-vivo, e in alto ci sono i pulsanti per saltare nella canzone (>0:45, >2:25, >3:30), per
+"Dat Boi ADMIN". Serve a revisionare il gioco: si comporta esattamente come quello normale (anche alla
+morte), con in più in alto i pulsanti per saltare nella canzone (>0:45, >2:25, >3:30), per
 portare dat boi a -11 m (MLG) o -31 m (Backflip), la rana invincibile e una riga con tempo
 della canzone, giro, modalità, video in corso e specchi. L'APK admin non va pubblicato in
 questo repository; quello normale (`Flavor.ADMIN = false`) non ha nessuna di queste funzioni.
