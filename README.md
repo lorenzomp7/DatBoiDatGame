@@ -51,7 +51,8 @@ sequenza riparte a 0:48 e a 2:28 di ogni ripetizione del brano, fino al "restert
 Tra un video e l'altro non c'è mai uno stacco: ogni video ha il suo lettore, preparato una
 volta sola all'avvio e poi solo fatto partire, fermato e riavvolto, così il video successivo
 è sempre pronto; l'ultimo fotogramma resta a schermo finché il nuovo non ha il primo. I video MLG e "Snoop Dogg" sono muti e il loro audio è un'unica
-traccia (`assets/mlgchain.ogg`) che parte un istante prima di "1 MLG": così nessun video
+traccia (`assets/mlgchain.ogg`, con "1 MLG" e "2 MLG" alzati allo stesso volume di "3 MLG",
+circa -4,5 LUFS) che parte un istante prima di "1 MLG": così nessun video
 resta fermo sul primo fotogramma ad aspettare l'audio. `snoop.mp4` contiene già "Snoop Dogg" ripetuto 10 volte
 (95 s, più di quanto resta mai a schermo tra due serie MLG), perché il lettore di
 Android si ferma mezzo secondo ogni volta che riparte da capo. Ogni volta che il brano finisce compare per qualche
