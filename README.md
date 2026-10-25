@@ -45,14 +45,14 @@ reimplementato, la scena Unity (`level0`) letta oggetto per oggetto.
 
 Andando all'indietro fino a -10 m la musica di sottofondo diventa "I Keep Holding On"
 (`assets/minus10.ogg`, +10% di volume su tutto il brano), in loop fino al
-"restert?", poi torna la musica originale. Quando il brano arriva a 0:48 parte, dietro
+"restert?", poi torna la musica originale. Quando il brano arriva a 0:49 parte, dietro
 la rana e davanti al terreno, il video "1 MLG" (`assets/mlg1.mp4`) con il verde reso
 trasparente (chroma key nello shader); appena finisce parte il video "2 MLG"
 (`assets/mlg2.mp4`, a sfondo pieno, senza trasparenza) e poi "3 MLG" (`assets/mlg3.mp4`,
 verde trasparente). Dopo i tre video parte "Snoop Dogg" (`assets/snoop.mp4`, verde
 trasparente) a ripetizione. Quando il brano arriva a 2:28 "Snoop Dogg" si ferma e
 ripartono "1 MLG", "2 MLG" e "3 MLG", poi di nuovo "Snoop Dogg" a ripetizione; la stessa
-sequenza riparte a 0:48 e a 2:28 di ogni ripetizione del brano, fino al "restert?".
+sequenza riparte a 0:49 e a 2:28 di ogni ripetizione del brano, fino al "restert?".
 Tra un video e l'altro non c'è mai uno stacco: ogni video ha il suo lettore, preparato una
 volta sola all'avvio e poi solo fatto partire, fermato e riavvolto, così il video successivo
 è sempre pronto; l'ultimo fotogramma resta a schermo finché il nuovo non ha il primo. I video MLG e "Snoop Dogg" sono muti e il loro audio è un'unica
@@ -66,7 +66,7 @@ secondo una frase a caso in stile Dat Boi ("1 more time 4 da boiz", ...). Questa
 ### Dopo la morte
 
 La canzone di -10 m continua fino al "restert?", ma non succede nient'altro: nessun nuovo
-video a 0:48 e 2:28, nessuno specchio, nessuna frase a fine canzone. In una partita MLG
+video a 0:49 e 2:28, nessuno specchio, nessuna frase a fine canzone. In una partita MLG
 alla morte come sfondo resta solo "Snoop Dogg" (l'audio dei video MLG si ferma); in
 Backflip lo schermo resta specchiato com'era; in una partita normale il video dei 1000 m, se stava andando, si ferma insieme al suo audio.
 
@@ -78,13 +78,13 @@ torni in avanti sopra -30 m la partita torna MLG ("MLG MODE ACTIVATED!!1!"), e c
 ogni volta che passi la linea dei -30 m. Conta la modalità in cui muori: oltre -30 m il
 record Backflip, sopra -30 m il record MLG. Il record Backflip si sblocca la prima volta, compare come
 terza riga sotto "ur record" e "MLG" nella schermata di morte e passa da export/import dei progressi. La musica resta quella della modalità MLG, ma i video MLG
-non ci sono: entrando in Backflip il video si ferma, e a 0:48 e 2:28 non parte nessun
-video. Tornando in MLG i video ripartono al punto successivo del brano (0:48 o 2:28).
+non ci sono: entrando in Backflip il video si ferma, e a 0:49 e 2:28 non parte nessun
+video. Tornando in MLG i video ripartono al punto successivo del brano (0:49 o 2:28).
 
-In modalità Backflip, ogni volta che il brano arriva a 0:48 tutto il gioco (scena, video e
+In modalità Backflip, ogni volta che il brano arriva a 0:49 tutto il gioco (scena, video e
 scritte) si specchia orizzontalmente, e ogni volta che arriva a 2:28 si specchia
-verticalmente. Gli specchi si sommano: al primo giro del brano a 0:48 è specchiato, a
-2:28 anche capovolto; al secondo giro a 0:48 torna dritto in orizzontale e a 2:28 torna
+verticalmente. Gli specchi si sommano: al primo giro del brano a 0:49 è specchiato, a
+2:28 anche capovolto; al secondo giro a 0:49 torna dritto in orizzontale e a 2:28 torna
 dritto del tutto, e così via. I comandi seguono l'immagine: tocchi il lato dello schermo
 che vedi. Uscendo dal Backflip o con "restert?" torna tutto normale.
 
