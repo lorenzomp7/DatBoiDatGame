@@ -6,7 +6,6 @@ import android.media.AudioAttributes;
 import android.media.MediaPlayer;
 import android.media.SoundPool;
 import android.os.Handler;
-import android.os.Looper;
 import android.util.Log;
 
 import java.io.IOException;
@@ -20,13 +19,14 @@ final class Sound {
     private final int hitmarker, ohShit, k;
     private int ohShitStream;
     private volatile boolean ohShitLoaded, ohShitPending;
-    private MediaPlayer music;         // main thread only
+    private MediaPlayer music;         // media thread only
     private final Context context;
-    private final Handler main = new Handler(Looper.getMainLooper());
+    /** Every MediaPlayer call runs here, so preparing a track never blocks the game or the touches. */
+    private final Handler media = MediaThread.get();
     private boolean musicStarted;      // static playingmusic in the original
     private float musicTimer = -1f;
     private volatile boolean paused, appPaused;
-    private volatile MediaPlayer special;   // created/released on the main thread: the -10 m track
+    private volatile MediaPlayer special;   // created/released on the media thread: the -10 m track
     private volatile boolean specialOn;
 
     Sound(Context context) {
@@ -73,7 +73,7 @@ final class Sound {
             musicTimer -= realDt;
             if (musicTimer < 0) {
                 musicStarted = true;
-                main.post(new Runnable() {
+                media.post(new Runnable() {
                     @Override
                     public void run() {
                         startMusic();
@@ -128,7 +128,7 @@ final class Sound {
     void setSpecialMusic(boolean on) {
         if (specialOn == on) return;
         specialOn = on;
-        main.post(new Runnable() {
+        media.post(new Runnable() {
             @Override
             public void run() {
                 if (specialOn && special == null) special = createPlayer("minus10.ogg");
@@ -137,6 +137,16 @@ final class Sound {
                     special.seekTo(0);
                 }
                 applyMusic();
+            }
+        });
+    }
+
+    /** Admin build: jumps the -10 m song to a position. */
+    void seekSpecialMusic(final int ms) {
+        media.post(new Runnable() {
+            @Override
+            public void run() {
+                if (specialOn && special != null) special.seekTo(ms);
             }
         });
     }
@@ -171,7 +181,7 @@ final class Sound {
         }
     }
 
-    /** Main thread: play exactly one of the two music tracks (or none when silent). */
+    /** Media thread: play exactly one of the two music tracks (or none when silent). */
     private void applyMusic() {
         boolean silent = paused || appPaused;
         boolean useSpecial = specialOn && special != null;
@@ -181,7 +191,7 @@ final class Sound {
             else if (!want && music.isPlaying()) music.pause();
         }
         if (special != null) {
-            // muted, the song keeps running silently so the 0:48 video cue still fires
+            // muted, the song keeps running silently so the 0:48.5 video cue still fires
             boolean want = !appPaused && useSpecial;
             float v = paused ? 0f : 1f;
             special.setVolume(v, v);
@@ -204,7 +214,7 @@ final class Sound {
     private void apply() {
         boolean silent = paused || appPaused;
         if (silent) pool.autoPause(); else pool.autoResume();
-        main.post(new Runnable() {
+        media.post(new Runnable() {
             @Override
             public void run() {
                 applyMusic();
@@ -212,12 +222,16 @@ final class Sound {
         });
     }
 
-    /** Main thread. */
     void release() {
         pool.release();
-        if (music != null) music.release();
-        if (special != null) special.release();
-        music = null;
-        special = null;
+        media.post(new Runnable() {
+            @Override
+            public void run() {
+                if (music != null) music.release();
+                if (special != null) special.release();
+                music = null;
+                special = null;
+            }
+        });
     }
 }

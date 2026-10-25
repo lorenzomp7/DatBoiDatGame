@@ -45,20 +45,63 @@ reimplementato, la scena Unity (`level0`) letta oggetto per oggetto.
 
 Andando all'indietro fino a -10 m la musica di sottofondo diventa "I Keep Holding On"
 (`assets/minus10.ogg`, +10% di volume su tutto il brano), in loop fino al
-"restert?", poi torna la musica originale. Quando il brano arriva a 0:48 parte, dietro
+"restert?", poi torna la musica originale. Quando il brano arriva a 0:48,5 parte, dietro
 la rana e davanti al terreno, il video "1 MLG" (`assets/mlg1.mp4`) con il verde reso
 trasparente (chroma key nello shader); appena finisce parte il video "2 MLG"
 (`assets/mlg2.mp4`, a sfondo pieno, senza trasparenza) e poi "3 MLG" (`assets/mlg3.mp4`,
-verde trasparente), ognuno una sola volta per partita. Dopo i tre video parte "Snoop Dogg"
-(`assets/snoop.mp4`, verde trasparente), che si ripete fino al "restert?".
+verde trasparente). Dopo i tre video parte "Snoop Dogg" (`assets/snoop.mp4`, verde
+trasparente) a ripetizione. Quando il brano arriva a 2:28 "Snoop Dogg" si ferma e
+ripartono "1 MLG", "2 MLG" e "3 MLG", poi di nuovo "Snoop Dogg" a ripetizione; la stessa
+sequenza riparte a 0:48,5 e a 2:28 di ogni ripetizione del brano, fino al "restert?".
+Tra un video e l'altro non c'è mai uno stacco: ogni video ha il suo lettore, preparato una
+volta sola all'avvio e poi solo fatto partire, fermato e riavvolto, così il video successivo
+è sempre pronto; l'ultimo fotogramma resta a schermo finché il nuovo non ha il primo. I video MLG e "Snoop Dogg" sono muti e il loro audio è un'unica
+traccia (`assets/mlgchain.ogg`, con "1 MLG" e "2 MLG" alzati allo stesso volume di "3 MLG",
+circa -4,5 LUFS) che parte un istante prima di "1 MLG": così nessun video
+resta fermo sul primo fotogramma ad aspettare l'audio. `snoop.mp4` contiene già "Snoop Dogg" ripetuto 10 volte
+(95 s, più di quanto resta mai a schermo tra due serie MLG), perché il lettore di
+Android si ferma mezzo secondo ogni volta che riparte da capo. Ogni volta che il brano finisce compare per qualche
+secondo una frase a caso in stile Dat Boi ("1 more time 4 da boiz", ...). Questa frase e le scritte "BACKFLIP MODE ACTIVATED!!1!" e "MLG MODE ACTIVATED!!1!" sono nere e senza riquadro, come le altre scritte del gioco.
+
+### Dopo la morte
+
+La canzone di -10 m continua fino al "restert?", ma non succede nient'altro: nessun nuovo
+video a 0:48,5 e 2:28, nessuno specchio, nessuna frase a fine canzone. In una partita MLG
+alla morte come sfondo resta solo "Snoop Dogg" (l'audio dei video MLG si ferma); in
+Backflip lo schermo resta specchiato com'era; in una partita normale il video dei 1000 m, se stava andando, si ferma insieme al suo audio.
+
+### Modalità Backflip
+
+Andando all'indietro oltre -30 m la partita diventa **Backflip** ("BACKFLIP MODE
+ACTIVATED!!1!"): il suo record è la distanza più lontana raggiunta all'indietro. Se
+torni in avanti sopra -30 m la partita torna MLG ("MLG MODE ACTIVATED!!1!"), e così via
+ogni volta che passi la linea dei -30 m. Conta la modalità in cui muori: oltre -30 m il
+record Backflip, sopra -30 m il record MLG. Il record Backflip si sblocca la prima volta, compare come
+terza riga sotto "ur record" e "MLG" nella schermata di morte e passa da export/import dei progressi. La musica resta quella della modalità MLG, ma i video MLG
+non ci sono: entrando in Backflip il video si ferma, e a 0:48,5 e 2:28 non parte nessun
+video. Tornando in MLG i video ripartono al punto successivo del brano (0:48,5 o 2:28).
+
+In modalità Backflip, ogni volta che il brano arriva a 0:48,5 tutto il gioco (scena, video e
+scritte) si specchia orizzontalmente, e ogni volta che arriva a 2:28 si specchia
+verticalmente. Gli specchi si sommano: al primo giro del brano a 0:48,5 è specchiato, a
+2:28 anche capovolto; al secondo giro a 0:48,5 torna dritto in orizzontale e a 2:28 torna
+dritto del tutto, e così via. I comandi seguono l'immagine: tocchi il lato dello schermo
+che vedi. Uscendo dal Backflip o con "restert?" torna tutto normale.
 
 ### Record MLG
 
 Un secondo record, **MLG**, funziona come "ur record" (la distanza più lontana raggiunta
 in avanti) ma conta solo le partite in cui sei arrivato a -10 m; quelle partite non
-contano per "ur record" (una partita è o normale o MLG, mai entrambe). La prima di queste
+contano per "ur record" (una partita è normale, MLG o Backflip, mai più di una). La prima di queste
 partite lo sblocca; da allora compare sotto "ur record" nella schermata di morte. Viene
 salvato e passa anche da export/import dei progressi.
+
+### Velocità massime
+
+Di fianco a ogni record (ur record, MLG, Backflip) c'è la velocità massima mai raggiunta
+in quel tipo di partita, in km/h: in avanti per "ur record" e MLG, all'indietro per
+Backflip. Una partita conta per lo
+stesso tipo del suo record. Anche le velocità passano da export/import dei progressi.
 
 ### Terreno e righello
 
@@ -71,13 +114,22 @@ In una partita normale (che non è passata da -10 m) parte, dietro la rana, il v
 `assets/normal1000.mp4` (verde reso trasparente) a 1000, 2000, 3000, 10000, 20000 e
 30000 m, una volta per ciascun traguardo.
 
+### Audio e fluidità
+
+Il video della modalità normale ha lo stesso volume percepito della canzone base
+(-10,5 LUFS) e "I Keep Holding On" è un po' più alta (-8,0 LUFS). Musica e video vengono
+preparati su un thread separato, così quando partono il gioco e i comandi non si
+bloccano; se comunque un fotogramma arriva in ritardo, il gioco rallenta per un istante
+invece di fare un salto in avanti con i comandi fermi.
+
 ### Salvare i progressi
 
 Nel pannello `help` ci sono due pulsanti in più: **export ur progress** salva record e
 distanza totale in un file `datboi-progress.json` (dove vuoi: Download, Drive, ...), e
 **import ur progress** li ricarica. L'importazione tiene sempre il valore migliore tra
 quello attuale e quello del file, quindi non si perde niente. Utile per cambiare telefono
-o reinstallare l'app.
+o reinstallare l'app. Il backup automatico di Android è disattivato: disinstallando e
+reinstallando l'app si riparte da zero, e i progressi passano solo dal file esportato.
 
 ### Differenze rispetto all'originale
 
@@ -87,6 +139,16 @@ o reinstallare l'app.
 - Sugli schermi più larghi di 16:9 (quasi tutti i telefoni moderni) la UI mantiene la
   disposizione 16:9 invece di sovrapporre gli elementi.
 - I salvataggi della vecchia app (record e distanza) non vengono importati.
+
+## Build admin (privata)
+
+`ADMIN=1 ./tools/build_apk.sh` produce `build/admin/DatBoi-admin.apk`: pacchetto
+`com.rektstudios.daboi.admin` (si installa accanto al gioco, con salvataggi suoi), nome
+"Dat Boi ADMIN". Serve a revisionare il gioco: si comporta esattamente come quello normale (anche alla
+morte), con in più in alto i pulsanti per saltare nella canzone (>0:45, >2:25, >3:30), per
+portare dat boi a -11 m (MLG) o -31 m (Backflip), la rana invincibile e una riga con tempo
+della canzone, giro, modalità, video in corso e specchi. L'APK admin non va pubblicato in
+questo repository; quello normale (`Flavor.ADMIN = false`) non ha nessuna di queste funzioni.
 
 ## Struttura
 

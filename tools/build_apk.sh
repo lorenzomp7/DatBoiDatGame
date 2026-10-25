@@ -6,6 +6,8 @@
 #   apt install aapt dalvik-exchange zipalign apksigner android-sdk-platform-23 openjdk-17-jdk
 #
 # Output: build/DatBoi.apk (signed with $KEYSTORE, or a generated debug key).
+# ADMIN=1 builds the private admin APK instead: build/admin/DatBoi-admin.apk, package
+# com.rektstudios.daboi.admin (installs next to the game), with Flavor.ADMIN on.
 #
 # The game is pure Java + OpenGL ES 2.0 with no native libraries, so the APK runs as
 # a 64-bit process on arm64-v8a / x86_64 devices (including 64-bit-only phones).
@@ -14,6 +16,9 @@ set -euo pipefail
 ROOT="$(cd "$(dirname "$0")/.." && pwd)"
 APP="$ROOT/app/src/main"
 OUT="$ROOT/build"
+ADMIN="${ADMIN:-0}"
+NAME=DatBoi
+[[ "$ADMIN" == 1 ]] && { OUT="$ROOT/build/admin"; NAME=DatBoi-admin; }
 
 find_tool() {
   local name="$1"
@@ -45,21 +50,35 @@ done
 rm -rf "$OUT"
 mkdir -p "$OUT/gen" "$OUT/classes" "$OUT/dex"
 
+RES="$APP/res"
+JAVA="$APP/java"
+EXTRA=()
+if [[ "$ADMIN" == 1 ]]; then
+  cp -r "$APP/res" "$OUT/res"
+  sed -i 's|<string name="app_name">.*</string>|<string name="app_name">Dat Boi ADMIN</string>|' "$OUT/res/values/strings.xml"
+  cp -r "$APP/java" "$OUT/java"
+  sed -i 's/static final boolean ADMIN = false;/static final boolean ADMIN = true;/' "$OUT/java/com/rektstudios/daboi/Flavor.java"
+  grep -q 'ADMIN = true' "$OUT/java/com/rektstudios/daboi/Flavor.java"
+  RES="$OUT/res"
+  JAVA="$OUT/java"
+  EXTRA=(--rename-manifest-package com.rektstudios.daboi.admin)
+fi
+
 echo "== resources"
 "$AAPT" package -f -m \
   -M "$APP/AndroidManifest.xml" \
-  -S "$APP/res" \
+  -S "$RES" \
   -A "$APP/assets" \
   -I "$ANDROID_JAR" \
   -J "$OUT/gen" \
-  -0 ogg -0 bin -0 mp4 \
+  -0 ogg -0 bin -0 mp4 "${EXTRA[@]}" \
   -F "$OUT/unaligned.apk"
 
 echo "== java"
 javac -nowarn -Xlint:-options -encoding UTF-8 -source 8 -target 8 \
   -bootclasspath "$ANDROID_JAR" -classpath "$ANDROID_JAR" \
   -d "$OUT/classes" \
-  $(find "$OUT/gen" "$APP/java" -name '*.java')
+  $(find "$OUT/gen" "$JAVA" -name '*.java')
 
 echo "== dex"
 if [[ -n "$D8" ]]; then
@@ -83,7 +102,7 @@ fi
 "$APKSIGNER" sign --ks "$KEYSTORE" --ks-key-alias "$KEY_ALIAS" \
   --ks-pass "pass:$KEY_PASS" --key-pass "pass:$KEY_PASS" \
   --min-sdk-version 21 \
-  --out "$OUT/DatBoi.apk" "$OUT/aligned.apk"
-"$APKSIGNER" verify "$OUT/DatBoi.apk"
+  --out "$OUT/$NAME.apk" "$OUT/aligned.apk"
+"$APKSIGNER" verify "$OUT/$NAME.apk"
 rm -f "$OUT/unaligned.apk" "$OUT/aligned.apk"
-echo "built $OUT/DatBoi.apk"
+echo "built $OUT/$NAME.apk"

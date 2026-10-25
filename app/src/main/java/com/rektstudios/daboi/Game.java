@@ -22,6 +22,7 @@ final class Game {
     private static final float MOVE_SPEED = 4f / 0.009f;   // MoveTo: 4 m/s, in Dat Boi local units
     private static final float ANIM_SPEED = -0.65f;        // DatBoiController state speed * AnimSpeed
     private static final float DIE_HEIGHT = 0.4f;
+    private static final float MAX_GAME_STEP = 1f / 20f;
 
     final Model model;
     final Sound sound;
@@ -49,18 +50,62 @@ final class Game {
      */
     float minScore, mlgRecord;
     boolean mlgUnlocked;
+    /**
+     * Not in the original: past -30 m an MLG run is in Backflip mode, scored backwards
+     * (its record is the farthest you went back); back on the near side of -30 m it is
+     * in MLG mode again. The mode you die in decides which record the run counts for.
+     */
+    static final float BACKFLIP_AT = -30f;
+    /** Half a metre of slack so wobbling right on the -30 m line does not flip the mode every frame. */
+    private static final float BACKFLIP_SLACK = 0.5f;
+    static final int MODE_NORMAL = 0, MODE_MLG = 1, MODE_BACKFLIP = 2;
+    int mode;
+    float backflipRecord;
+    boolean backflipUnlocked;
+    /**
+     * Not in the original: the top speed (m/s) ever reached in the runs of each kind,
+     * indexed by mode; a run counts for the same kind as its record. Like the records,
+     * normal and MLG runs are timed going forwards, Backflip runs going backwards.
+     */
+    final float[] topSpeed = new float[3];
+    /**
+     * Not in the original: in Backflip mode the whole game (picture, clip and UI) is
+     * mirrored left-right each time the -10 m song reaches 0:48.5 and upside down each
+     * time it reaches 2:28; each cue flips it again, so it adds up over the repeats.
+     * Leaving Backflip mode or restarting puts it back the right way.
+     */
+    volatile boolean mirrorX, mirrorY;
+    private float runTopForward, runTopBackward;
     private float distanceLast;
     private boolean pastTen, pastTwen, pastThir;
     /**
-     * Not in the original: the MLG green screen clip plays behind dat boi once
-     * the -10 m song reaches 0:48.
+     * Not in the original: the MLG clips ("1 MLG", "2 MLG", "3 MLG", then "Snoop Dogg"
+     * on repeat) start over each time the -10 m song reaches 0:48.5 and 2:28, on every
+     * repetition of the song.
      */
-    static final int VIDEO_AT_SONG_MS = 48000;
+    static final int[] MLG_VIDEO_AT_SONG_MS = {48500, 148000};
+    /** A backwards jump of the song position bigger than this is the song looping. */
+    private static final int SONG_LOOP_JUMP_MS = 5000;
     /** Not in the original: a normal run (never at -10 m) plays its own clip at these marks. */
     static final float[] NORMAL_VIDEO_AT = {1000f, 2000f, 3000f, 10000f, 20000f, 30000f};
-    /** Clip to show (VideoBackground.NONE / MLG1 / NORMAL / MLG2), and a counter bumped on every request. */
-    volatile int videoClip, videoSeq;
-    private boolean mlgVideoCued;
+    /**
+     * Clip to start (VideoBackground.NONE / MLG1 / NORMAL; "1 MLG" carries on by itself),
+     * a counter bumped on every request, and the clip that may be asked for next.
+     */
+    volatile int videoClip, videoSeq, videoHint;
+    private int lastSongMs;
+    /** Repeats of the -10 m song so far (1 = first time through). */
+    private int songLoop;
+
+    // admin build only (Flavor.ADMIN): review tools
+    /** The pole never brings dat boi down: he is stood back up instead. */
+    volatile boolean invincible;
+    /** The clip on screen, set by the renderer. */
+    volatile int playingClip;
+    /** One line with song time, repeat, mode and clip. */
+    volatile String adminInfo = "";
+    /** Song position the song was just made to jump to (ignored until it lands there). */
+    private int seekingTo = -1;
     private int nextNormalVideo;
     /** Not in the original: going back to -10 m switches the music. */
     static final float SPECIAL_MUSIC_AT = -10f;
@@ -90,6 +135,21 @@ final class Game {
     volatile String endRecordText = "Ur Rekord is:";
     /** Empty until the MLG record is unlocked. */
     volatile String endMlgText = "";
+    volatile String endBackflipText = "";
+    /** Not in the original: a line shown on screen for a few seconds (real time). */
+    volatile String bannerText = "";
+    volatile long bannerUntil;
+    static final long BANNER_MS = 4000;
+    /** Shown every time the -10 m song ends. */
+    private static final String[] SONG_END_LINES = {
+            "o shit waddup!!1! da song endded but dat boi keeps cyclin",
+            "u survivd da whole song m8\nMOM GET DA CAMERA",
+            "DAT BOI STILL HOLDIN ON\n(his hope will nevr die)",
+            "1 more time 4 da boiz",
+            "da song is ovr but u didnt diededed yet?!?!",
+            "2 dank 4 da song\nhere it comes again",
+    };
+    private int lastSongLine = -1;
     volatile String cycledText = "";
 
     Game(Model model, Sound sound, Save save) {
@@ -109,12 +169,21 @@ final class Game {
         recordScore = save.record();
         mlgUnlocked = save.mlgUnlocked();
         mlgRecord = save.mlgRecord();
+        backflipUnlocked = save.backflipUnlocked();
+        backflipRecord = save.backflipRecord();
+        mode = MODE_NORMAL;
+        bannerUntil = 0;
         distanceUnicycled = save.distance();
         distanceLast = 0;
         currentScore = maxScore = minScore = 0;
+        runTopForward = runTopBackward = 0;
+        mirrorX = mirrorY = false;
+        for (int i = 0; i < 3; i++) topSpeed[i] = save.topSpeed(i);
         pastTen = pastTwen = pastThir = false;
         videoClip = VideoBackground.NONE;
-        mlgVideoCued = false;
+        lastSongMs = -1;
+        songLoop = 1;
+        seekingTo = -1;
         nextNormalVideo = 0;
         sound.setSpecialMusic(false);
         animTime = 0;
@@ -134,6 +203,7 @@ final class Game {
         endScoreText = "Dis run:";
         endRecordText = "Ur Rekord is:";
         endMlgText = "";
+        endBackflipText = "";
         if (firstLaunch) {
             sound.playOhShit();
             timeScale = 0f;
@@ -179,6 +249,11 @@ final class Game {
             mlgRecord = mlgUnlocked ? Math.max(mlgRecord, save.mlgRecord()) : save.mlgRecord();
             mlgUnlocked = true;
         }
+        if (save.backflipUnlocked()) {
+            backflipRecord = backflipUnlocked ? Math.max(backflipRecord, save.backflipRecord()) : save.backflipRecord();
+            backflipUnlocked = true;
+        }
+        for (int i = 0; i < 3; i++) topSpeed[i] = Math.max(topSpeed[i], save.topSpeed(i));
         distanceUnicycled = Math.max(distanceUnicycled, save.distance());
     }
 
@@ -187,12 +262,83 @@ final class Game {
         videoSeq++;
     }
 
-    /** GL thread: a clip played to its end; "1 MLG" -> "2 MLG" -> "3 MLG" -> "Snoop Dogg" (looping). */
-    void onVideoFinished(int clip) {
-        if (clip != videoClip) return;
-        if (clip == VideoBackground.MLG1) playVideo(VideoBackground.MLG2);
-        else if (clip == VideoBackground.MLG2) playVideo(VideoBackground.MLG3);
-        else if (clip == VideoBackground.MLG3) playVideo(VideoBackground.SNOOP);
+    /**
+     * Restarts the MLG clips when the -10 m song crosses one of its cue points.
+     * After death the song plays on but nothing else happens: the player must not
+     * get to see what comes later without reaching it.
+     */
+    private void cueMlgVideos() {
+        int pos = sound.specialMusicPositionMs();
+        if (pos < 0) return;
+        if (seekingTo >= 0) {
+            // an admin jump: wait until the song is there, without firing anything on the way
+            if (Math.abs(pos - seekingTo) > 1500) return;
+            seekingTo = -1;
+            lastSongMs = pos;
+            return;
+        }
+        int prev = lastSongMs;
+        if (prev - pos > SONG_LOOP_JUMP_MS) {   // the song looped
+            prev = -1;
+            songLoop++;
+            if (!ded) onSongEnded();
+        }
+        lastSongMs = Math.max(prev, pos);
+        if (ded) return;
+        for (int i = 0; i < MLG_VIDEO_AT_SONG_MS.length; i++) {
+            int cue = MLG_VIDEO_AT_SONG_MS[i];
+            if (prev < cue && pos >= cue) {
+                // the MLG clips are for MLG mode only; Backflip mode mirrors the game instead
+                if (mode == MODE_BACKFLIP) {
+                    if (i == 0) mirrorX = !mirrorX;
+                    else mirrorY = !mirrorY;
+                } else {
+                    playVideo(VideoBackground.MLG1);
+                }
+                break;
+            }
+        }
+    }
+
+    // ------------------------------------------------------------ admin build
+    /** Jumps the -10 m song (only while it plays). */
+    void adminSeek(int ms) {
+        if (sound.specialMusicPositionMs() < 0) return;
+        seekingTo = ms;
+        sound.seekSpecialMusic(ms);
+    }
+
+    /** Puts dat boi upright at a distance (-11 m: MLG, -31 m: Backflip), standing still. */
+    void adminTeleport(float metres) {
+        if (ded) return;
+        double delta = metres - currentScore;
+        phys.x += delta;
+        phys.v = 0;
+        phys.wheelSpin = 0;
+        phys.theta = 0;
+        phys.omega = 0;
+        distanceLast += (float) delta;   // a jump is not distance cycled
+    }
+
+    private void updateAdminInfo() {
+        int pos = sound.specialMusicPositionMs();
+        String song = pos < 0 ? "canzone -10 m: no"
+                : String.format(java.util.Locale.US, "canzone %d:%04.1f giro %d", pos / 60000, (pos % 60000) / 1000f, songLoop);
+        String m = mode == MODE_BACKFLIP ? "Backflip" : mode == MODE_MLG ? "MLG" : "normale";
+        adminInfo = "ADMIN · " + song + "\n" + m + (ded ? " (morto)" : "") + " · "
+                + VideoBackground.clipName(playingClip) + (mirrorX ? " · specchio" : "") + (mirrorY ? " · capovolto" : "");
+    }
+
+    private void onSongEnded() {
+        int i = random.nextInt(SONG_END_LINES.length - 1);
+        if (i >= lastSongLine && lastSongLine >= 0) i++;   // never the same line twice in a row
+        lastSongLine = i;
+        showBanner(SONG_END_LINES[i]);
+    }
+
+    private void showBanner(String text) {
+        bannerText = text;
+        bannerUntil = android.os.SystemClock.uptimeMillis() + BANNER_MS;
     }
 
     void onKey(int dir, boolean down) {
@@ -206,7 +352,9 @@ final class Game {
         while ((r = queue.poll()) != null) r.run();
 
         realDt = Math.min(realDt, 1f / 3f);   // Unity "Maximum Allowed Timestep"
-        float dt = realDt * timeScale;
+        // Unlike Unity, a slow frame (a hiccup) is not caught up in one big step with
+        // stale input: game time slows down instead, so a stutter can't cost the run.
+        float dt = Math.min(realDt, MAX_GAME_STEP) * timeScale;
         sound.update(realDt);
 
         // Input.GetAxis("Horizontal") keyboard smoothing (sensitivity 3, gravity 3, snap)
@@ -227,10 +375,8 @@ final class Game {
         if (animTime < 0) animTime += model.clipLength;
 
         while (phys.x >= amountAlready - 10) amountAlready += 10;
-        if (!mlgVideoCued && sound.specialMusicPositionMs() >= VIDEO_AT_SONG_MS) {
-            mlgVideoCued = true;
-            playVideo(VideoBackground.MLG1);
-        }
+        cueMlgVideos();
+        if (Flavor.ADMIN) updateAdminInfo();
         moveAccessories(dt);
         updateTransforms();
         updateSmoke(dt);
@@ -242,7 +388,12 @@ final class Game {
         distanceLast = currentScore;
         if (currentScore >= maxScore) maxScore = currentScore;
         if (currentScore <= minScore) minScore = currentScore;
-        boolean mlgRun = minScore <= SPECIAL_MUSIC_AT;
+        runTopForward = Math.max(runTopForward, (float) phys.v);
+        runTopBackward = Math.max(runTopBackward, (float) -phys.v);
+        updateMode();
+        boolean mlgRun = mode != MODE_NORMAL;
+        videoHint = mlgRun ? VideoBackground.MLG1
+                : nextNormalVideo < NORMAL_VIDEO_AT.length ? VideoBackground.NORMAL : VideoBackground.NONE;
         if (!mlgRun && nextNormalVideo < NORMAL_VIDEO_AT.length
                 && currentScore > NORMAL_VIDEO_AT[nextNormalVideo]) {
             while (nextNormalVideo < NORMAL_VIDEO_AT.length && currentScore > NORMAL_VIDEO_AT[nextNormalVideo]) {
@@ -273,7 +424,28 @@ final class Game {
         }
         scoreText = cropDistance(currentScore);
         cycledText = "Ur boi cycled \n" + cropDistance(distanceUnicycled) + " in total";
-        if (phys.poleCenterY() <= DIE_HEIGHT) die();
+        if (phys.poleCenterY() <= DIE_HEIGHT) {
+            if (Flavor.ADMIN && invincible) {
+                phys.theta = 0;   // stood back up
+                phys.omega = 0;
+            } else {
+                die();
+            }
+        }
+    }
+
+    /** Normal -> MLG at -10 m; then Backflip past -30 m and MLG again on this side of it. */
+    private void updateMode() {
+        if (mode == MODE_NORMAL && minScore <= SPECIAL_MUSIC_AT) mode = MODE_MLG;
+        if (mode == MODE_MLG && currentScore < BACKFLIP_AT) {
+            mode = MODE_BACKFLIP;
+            if (videoClip != VideoBackground.NONE) playVideo(VideoBackground.NONE);
+            showBanner("BACKFLIP MODE\nACTIVATED!!1!");
+        } else if (mode == MODE_BACKFLIP && currentScore > BACKFLIP_AT + BACKFLIP_SLACK) {
+            mode = MODE_MLG;
+            mirrorX = mirrorY = false;
+            showBanner("MLG MODE\nACTIVATED!!1!");
+        }
     }
 
     /** 10, 20, 30, 100, 200, 300, 1000, 2000, 3000, ... (the original played it every 10 m). */
@@ -290,23 +462,43 @@ final class Game {
     private void die() {
         ded = true;
         panelVisible = true;
-        // A run is either normal or MLG, never both: a run that went back to -10 m
-        // only counts for the MLG record (scored forwards), every other run only
-        // for "ur record".
-        boolean mlgRun = minScore <= SPECIAL_MUSIC_AT;
-        if (mlgRun) {
+        // only "Snoop Dogg" behind a dead MLG run (its clip sound stops, the song goes
+        // on); a dead normal run stops its clip; a dead Backflip run keeps its mirroring
+        if (mode == MODE_MLG) playVideo(VideoBackground.SNOOP);
+        else if (mode == MODE_NORMAL && videoClip != VideoBackground.NONE) playVideo(VideoBackground.NONE);
+        // A run is only one of normal, MLG or Backflip: a run that went back to -10 m
+        // counts for the MLG record (scored forwards), one that ends past -30 m
+        // in Backflip mode for the Backflip record (scored backwards), every other
+        // run only for "ur record".
+        if (mode == MODE_BACKFLIP) {
+            if (!backflipUnlocked || -minScore > backflipRecord) backflipRecord = -minScore;
+            backflipUnlocked = true;
+            save.storeBackflip(backflipRecord);
+        } else if (mode == MODE_MLG) {
             if (!mlgUnlocked || maxScore > mlgRecord) mlgRecord = maxScore;
             mlgUnlocked = true;
             save.storeMlg(mlgRecord);
         } else if (maxScore > recordScore) {
             recordScore = maxScore;
         }
+        float runTop = mode == MODE_BACKFLIP ? runTopBackward : runTopForward;
+        if (runTop > topSpeed[mode]) {
+            topSpeed[mode] = runTop;
+            save.storeTopSpeed(mode, runTop);
+        }
         firstLaunch = false;
         save.store(recordScore, distanceUnicycled);
-        endRecordText = "ur record: " + cropDistance(recordScore);
-        if (mlgUnlocked) endMlgText = "MLG: " + cropDistance(mlgRecord);
+        endRecordText = "ur record: " + cropDistance(recordScore) + speedText(MODE_NORMAL);
+        if (mlgUnlocked) endMlgText = "MLG: " + cropDistance(mlgRecord) + speedText(MODE_MLG);
+        if (backflipUnlocked) endBackflipText = "Backflip: " + cropDistance(backflipRecord) + speedText(MODE_BACKFLIP);
         endScoreText = "Dat Run: " + cropDistance(currentScore);
         scoreVisible = false;
+    }
+
+    /** "  (12.3 km/h)", or nothing before the first run of that kind. */
+    private String speedText(int mode) {
+        float s = topSpeed[mode];
+        return s > 0 ? String.format(java.util.Locale.US, "  (%.1f km/h)", s * 3.6f) : "";
     }
 
     String shareText() {

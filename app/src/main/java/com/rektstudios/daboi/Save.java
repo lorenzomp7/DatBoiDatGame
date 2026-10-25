@@ -42,17 +42,48 @@ final class Save {
         prefs.edit().putBoolean("MlgUnlocked", true).putFloat("MlgRange", mlgRecord).apply();
     }
 
+    /** Not in the original: the Backflip record, unlocked by going past -30 m. */
+    boolean backflipUnlocked() {
+        return prefs.getBoolean("BackflipUnlocked", false);
+    }
+
+    /** Farthest backwards distance among the runs that ended in Backflip mode. */
+    float backflipRecord() {
+        return prefs.getFloat("BackflipRange", 0f);
+    }
+
+    void storeBackflip(float backflipRecord) {
+        prefs.edit().putBoolean("BackflipUnlocked", true).putFloat("BackflipRange", backflipRecord).apply();
+    }
+
+    /** Top speed per kind of run (Game.MODE_NORMAL / MODE_MLG / MODE_BACKFLIP), m/s. */
+    // forwards for normal and MLG, backwards for Backflip (the first version counted
+    // either direction, so those values are left behind under the old names)
+    private static final String[] SPEED_KEYS = {"RecordSpeedFwd", "MlgSpeedFwd", "BackflipSpeedBack"};
+    private static final String[] SPEED_JSON = {"record_top_speed", "mlg_top_speed", "backflip_top_speed"};
+
+    float topSpeed(int mode) {
+        return prefs.getFloat(SPEED_KEYS[mode], 0f);
+    }
+
+    void storeTopSpeed(int mode, float speed) {
+        prefs.edit().putFloat(SPEED_KEYS[mode], speed).apply();
+    }
+
     /** Progress file for "export progress" (survives reinstalls and phone changes). */
     String exportJson() {
         try {
-            return new JSONObject()
+            JSONObject o = new JSONObject()
                     .put("game", "datboi")
                     .put("version", 1)
                     .put("record", (double) record())
                     .put("distance", (double) prefs.getFloat("Distance", 0f))
                     .put("mlg_unlocked", mlgUnlocked())
                     .put("mlg_record", (double) mlgRecord())
-                    .toString(2);
+                    .put("backflip_unlocked", backflipUnlocked())
+                    .put("backflip_record", (double) backflipRecord());
+            for (int i = 0; i < SPEED_KEYS.length; i++) o.put(SPEED_JSON[i], (double) topSpeed(i));
+            return o.toString(2);
         } catch (JSONException e) {
             throw new IllegalStateException(e);
         }
@@ -71,6 +102,14 @@ final class Save {
         if (o.optBoolean("mlg_unlocked", false)) {
             float mlg = (float) o.optDouble("mlg_record", 0);
             storeMlg(mlgUnlocked() ? Math.max(mlgRecord(), mlg) : mlg);
+        }
+        if (o.optBoolean("backflip_unlocked", false)) {
+            float backflip = (float) o.optDouble("backflip_record", 0);
+            storeBackflip(backflipUnlocked() ? Math.max(backflipRecord(), backflip) : backflip);
+        }
+        for (int i = 0; i < SPEED_KEYS.length; i++) {
+            float v = (float) o.optDouble(SPEED_JSON[i], 0);
+            if (v > topSpeed(i)) storeTopSpeed(i, v);
         }
         return record;
     }

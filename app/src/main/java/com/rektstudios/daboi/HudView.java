@@ -85,6 +85,11 @@ final class HudView extends View {
 
     private static final int A_HELP = 0, A_START = 1, A_K = 2, A_RESTART = 3, A_MUTE = 4, A_SHARE = 5,
             A_EXPORT = 6, A_IMPORT = 7;
+    // admin build only
+    private static final int A_SEEK_048 = 8, A_SEEK_228 = 9, A_SEEK_END = 10, A_TO_MLG = 11, A_TO_BACKFLIP = 12,
+            A_INVINCIBLE = 13;
+    private final List<El> adminEls = new ArrayList<>();
+    private El adminInfo, invincibleText;
 
     private final Game game;
     private final Sound sound;
@@ -94,7 +99,8 @@ final class HudView extends View {
     private final El deathPanel, faqPanel;
     private final List<El> deathEls = new ArrayList<>();
     private final List<El> faqEls = new ArrayList<>();
-    private final El muteText, endScore, endRecord, endMlg;
+    private final El muteText, endScore, endRecord, endMlg, endBackflip;
+    private final El banner, bannerText;
 
     private final TextPaint textPaint = new TextPaint(Paint.ANTI_ALIAS_FLAG);
     private final Paint fill = new Paint(Paint.ANTI_ALIAS_FLAG);
@@ -148,13 +154,23 @@ final class HudView extends View {
         endScore = new El(deathPanel, 1, 1, 1, 1, -249.8f, -79.4f, 466.4f, 119f, -0.9f)
                 .text("Dis run:", 53, ALIGN_MIDDLE_LEFT);
         deathEls.add(endScore);
-        endRecord = new El(deathPanel, 0, 0, 0, 0, 223.6f, 76.2f, 360.5f, 95f, 3.6f)
-                .text("Ur Rekord is:", 36, ALIGN_MIDDLE_LEFT);
+        // the three record lines (each with its top speed) sit high enough to stay on
+        // screen, under "restert?" and left of "share on dat facebuk?"
+        endRecord = new El(deathPanel, 0, 0, 0, 0, 222f, 136f, 400f, 38f, 3.6f)
+                .text("Ur Rekord is:", 26, ALIGN_MIDDLE_LEFT);
         deathEls.add(endRecord);
-        // not in the original: the MLG record, right under "ur record"
-        endMlg = new El(deathPanel, 0, 0, 0, 0, 223.6f, 30f, 360.5f, 60f, 3.6f)
-                .text("", 36, ALIGN_MIDDLE_LEFT);
+        // not in the original: the MLG and Backflip records, under "ur record"
+        endMlg = new El(deathPanel, 0, 0, 0, 0, 222f, 100f, 400f, 38f, 3.6f)
+                .text("", 26, ALIGN_MIDDLE_LEFT);
         deathEls.add(endMlg);
+        endBackflip = new El(deathPanel, 0, 0, 0, 0, 222f, 64f, 400f, 38f, 3.6f)
+                .text("", 26, ALIGN_MIDDLE_LEFT);
+        deathEls.add(endBackflip);
+
+        // not in the original: crooked black text for game messages
+        banner = new El(root, 0.5f, 1f, 0.5f, 1f, 0f, -92f, 520f, 92f, 0f);
+        bannerText = new El(banner, 0, 0, 1, 1, 0, 0, -16f, -10f, 0).text("", 40, ALIGN_MIDDLE_CENTER).bestFit(10, 44);
+        bannerText.textColor = 0xff000000;
 
         // Canvas/Button: "Start da Gaem"
         startButton = new El(root, 0.5f, 0.5f, 0.5f, 0.5f, 0f, 4.3f, 224f, 54f, 0f);
@@ -176,7 +192,29 @@ final class HudView extends View {
                 "FAQ\nControls?\nTouch left to lean more right, touch right lean more left.\n\n"
                         + "Why does the UI look so ugly?\nBecause DAT BOI doesn't need a nice UI.\n\n"
                         + "How can I turn on music again?\nRestart the game.\n", 14, ALIGN_MIDDLE_CENTER));
+        if (Flavor.ADMIN) addAdminTools();
         setFocusable(true);
+    }
+
+    /** Admin build: a row of review buttons and a status line at the top. */
+    private void addAdminTools() {
+        String[] labels = {">0:45", ">2:25", ">3:30", "MLG", "BACKFLIP", "INV off"};
+        int[] actions = {A_SEEK_048, A_SEEK_228, A_SEEK_END, A_TO_MLG, A_TO_BACKFLIP, A_INVINCIBLE};
+        for (int i = 0; i < labels.length; i++) {
+            El b = new El(root, 0.5f, 1, 0.5f, 1, -225f + 70f * i, -18f, 66f, 24f, 0f);
+            b.bg = BG_BUTTON;
+            b.action = actions[i];
+            adminEls.add(b);
+            El t = new El(b, 0, 0, 1, 1, 0, 0, 0, 0, 0).text(labels[i], 12, ALIGN_MIDDLE_CENTER).bestFit(6, 13);
+            t.textColor = 0xffff0000;
+            adminEls.add(t);
+            if (actions[i] == A_INVINCIBLE) invincibleText = t;
+        }
+        // between "Disable dank sounds" and the score, under the buttons
+        adminInfo = new El(root, 0.5f, 1, 0.5f, 1, 30f, -47f, 260f, 28f, 0f).text("", 12, ALIGN_MIDDLE_CENTER)
+                .bestFit(6, 12);
+        adminInfo.textColor = 0xffff0000;
+        adminEls.add(adminInfo);
     }
 
     private El button(List<El> list, El parent, float ax, float ay, float px, float py, float w, float h, float rot, int action) {
@@ -220,6 +258,10 @@ final class HudView extends View {
 
     @Override
     protected void onDraw(Canvas c) {
+        // Backflip mode mirroring, drawn mirrored (a mirrored view transform made the
+        // whole HUD vanish on some phones); onTouchEvent mirrors the touches to match
+        c.save();
+        c.scale(game.mirrorX ? -1f : 1f, game.mirrorY ? -1f : 1f, getWidth() / 2f, getHeight() / 2f);
         float usableW = Math.max(1f, getWidth() - insetLeft - insetRight);
         float usableH = Math.max(1f, getHeight() - insetTop);
         // The original matched the 800 unit width, which was laid out for 16:9 screens.
@@ -244,6 +286,7 @@ final class HudView extends View {
             endScore.text = game.endScoreText;
             endRecord.text = game.endRecordText;
             endMlg.text = game.endMlgText;
+            endBackflip.text = game.endBackflipText;
             draw(c, deathPanel);
             for (El e : deathEls) draw(c, e);
         }
@@ -255,8 +298,15 @@ final class HudView extends View {
             draw(c, faqPanel);
             for (El e : faqEls) draw(c, e);
         }
-        // hitmarkers (destroyafter 0.78 s, real time)
+        if (Flavor.ADMIN) {
+            invincibleText.text = game.invincible ? "INV on" : "INV off";
+            adminInfo.text = game.adminInfo;
+            for (El e : adminEls) draw(c, e);
+        }
         long now = SystemClock.uptimeMillis();
+        long left = game.bannerUntil - now;
+        if (left > 0) drawBanner(c, game.bannerText, Game.BANNER_MS - left);
+        // hitmarkers (destroyafter 0.78 s, real time)
         float hs = 156.49f * scale;
         for (int i = hitmarkers.size() - 1; i >= 0; i--) {
             float[] h = hitmarkers.get(i);
@@ -267,7 +317,24 @@ final class HudView extends View {
             rect.set(h[0] - hs / 2, h[1] - hs / 2, h[0] + hs / 2, h[1] + hs / 2);
             c.drawBitmap(hitmarkerBmp, null, rect, bitmapPaint);
         }
+        c.restore();
         postInvalidateOnAnimation();
+    }
+
+    /** Pops in, wobbles like the rest of the crooked UI, then pops out. */
+    private void drawBanner(Canvas c, String text, long age) {
+        float t = age / 1000f, total = Game.BANNER_MS / 1000f;
+        float pop = Math.min(1f, t / 0.15f) * Math.min(1f, (total - t) / 0.15f);
+        banner.rot = -4f + 3f * (float) Math.sin(t * 7f);
+        bannerText.text = text;
+        layout(banner);
+        float cx = toPxX(banner.cx), cy = toPxY(banner.cy);
+        float k = pop * (1f + 0.04f * (float) Math.sin(t * 13f));
+        c.save();
+        c.scale(k, k, cx, cy);
+        c.rotate(-banner.rot, cx, cy);
+        draw(c, bannerText);
+        c.restore();
     }
 
     private float toPxX(float x) {
@@ -384,7 +451,7 @@ final class HudView extends View {
             case MotionEvent.ACTION_DOWN:
             case MotionEvent.ACTION_POINTER_DOWN: {
                 int id = ev.getPointerId(idx);
-                float x = ev.getX(idx), y = ev.getY(idx);
+                float x = touchX(ev.getX(idx)), y = touchY(ev.getY(idx));
                 El b = buttonAt(x, y);
                 if (b != null) {
                     pressed.put(id, b);
@@ -398,7 +465,7 @@ final class HudView extends View {
                 for (int i = 0; i < ev.getPointerCount(); i++) {
                     int id = ev.getPointerId(i);
                     for (int[] d : dpad) {
-                        if (d[0] == id) d[1] = axisFor(ev.getX(i));
+                        if (d[0] == id) d[1] = axisFor(touchX(ev.getX(i)));
                     }
                 }
                 applyAxis();
@@ -414,7 +481,7 @@ final class HudView extends View {
                     break;
                 }
                 int id = ev.getPointerId(idx);
-                float x = ev.getX(idx), y = ev.getY(idx);
+                float x = touchX(ev.getX(idx)), y = touchY(ev.getY(idx));
                 El b = pressed.remove(id);
                 for (int i = dpad.size() - 1; i >= 0; i--) {
                     if (dpad.get(i)[0] == id) dpad.remove(i);
@@ -432,6 +499,15 @@ final class HudView extends View {
         return true;
     }
 
+    /** Touch position in the (possibly mirrored) picture, so touches land where things are drawn. */
+    private float touchX(float x) {
+        return game.mirrorX ? getWidth() - x : x;
+    }
+
+    private float touchY(float y) {
+        return game.mirrorY ? getHeight() - y : y;
+    }
+
     private int axisFor(float x) {
         return x < getWidth() / 2f ? -1 : 1;
     }
@@ -447,6 +523,7 @@ final class HudView extends View {
     }
 
     private El buttonAt(float x, float y) {
+        for (El e : adminEls) if (e.action >= 0 && contains(e, x, y)) return e;
         if (game.faqVisible) {
             for (El e : faqEls) if (e.action >= 0 && contains(e, x, y)) return e;
         }
@@ -525,6 +602,30 @@ final class HudView extends View {
                 break;
             case A_SHARE:
                 actions.share(game.shareText());
+                break;
+            case A_SEEK_048:
+            case A_SEEK_228:
+            case A_SEEK_END:
+                final int ms = b.action == A_SEEK_048 ? 45000 : b.action == A_SEEK_228 ? 145000 : 210000;
+                game.post(new Runnable() {
+                    @Override
+                    public void run() {
+                        game.adminSeek(ms);
+                    }
+                });
+                break;
+            case A_TO_MLG:
+            case A_TO_BACKFLIP:
+                final float metres = b.action == A_TO_MLG ? -11f : -31f;
+                game.post(new Runnable() {
+                    @Override
+                    public void run() {
+                        game.adminTeleport(metres);
+                    }
+                });
+                break;
+            case A_INVINCIBLE:
+                game.invincible = !game.invincible;
                 break;
             default:
                 break;
