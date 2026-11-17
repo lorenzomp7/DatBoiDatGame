@@ -16,6 +16,8 @@ esegue come processo a 64 bit su `arm64-v8a` / `x86_64` (e anche sui dispositivi
 
 Tocca il pulsante per scaricare [`dist/DatBoi-2.0-64bit.apk`](dist/DatBoi-2.0-64bit.apk) (versione 2.1, minSdk 21 / Android 5.0, targetSdk 35).
 
+La versione su `main` include un’icona di avvio ridimensionata per le icone circolari dei launcher Android. Il pulsante sopra scarica l’APK da questo branch.
+
 ## Cosa è stato ricreato
 
 Tutto viene dall'APK originale: il codice C# (`Assembly-CSharp.dll`) decompilato e
