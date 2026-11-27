@@ -9,14 +9,14 @@ app Android nativa in Java + OpenGL ES 2.0, **senza alcuna libreria nativa**: AR
 esegue come processo a 64 bit su `arm64-v8a` / `x86_64` (e anche sui dispositivi a 32 bit).
 
 <p align="center">
-  <a href="https://raw.githubusercontent.com/lorenzomp7/DatBoiDatGame/main/dist/DatBoi-2.0-64bit.apk">
+  <a href="https://github.com/lorenzomp7/DatBoiDatGame/releases/download/ultima-build/DatBoi.apk">
     <img alt="Scarica l'APK" src="https://img.shields.io/badge/Scarica%20l'APK-Android%2064%20bit-3DDC84?style=for-the-badge&logo=android&logoColor=white" height="60">
   </a>
 </p>
 
-Tocca il pulsante per scaricare [`dist/DatBoi-2.0-64bit.apk`](dist/DatBoi-2.0-64bit.apk) (versione 2.1, minSdk 21 / Android 5.0, targetSdk 35).
+Tocca il pulsante per scaricare `DatBoi.apk` dalla release [Ultima build](https://github.com/lorenzomp7/DatBoiDatGame/releases/tag/ultima-build) (versione 2.1, minSdk 21 / Android 5.0, targetSdk 35): la compila GitHub Actions a ogni push su `main`, quindi è sempre l'ultima versione.
 
-La versione su `main` include un’icona di avvio ridimensionata per le icone circolari dei launcher Android. Il pulsante sopra scarica l’APK da questo branch.
+La versione su `main` include un’icona di avvio ridimensionata per le icone circolari dei launcher Android. Il pulsante sopra scarica l’APK compilato da questo branch.
 
 ## Cosa è stato ricreato
 
@@ -193,7 +193,7 @@ python3 tools/bake_assets.py /tmp/datboi-apk app/src/main/assets
 
 ## Installare
 
-`adb install dist/DatBoi-2.0-64bit.apk`, oppure copia l'APK sul telefono e aprilo
+Scarica `DatBoi.apk` dalla release [Ultima build](https://github.com/lorenzomp7/DatBoiDatGame/releases/tag/ultima-build) e installalo con `adb install DatBoi.apk`, oppure copia l'APK sul telefono e aprilo
 (consentendo l'installazione da origini sconosciute; su Play Protect scegli "Installa
 comunque"). L'APK è firmato con la chiave di debug fissa `tools/debug.keystore`, così le
 build successive si installano come aggiornamento. Se hai una versione firmata con
